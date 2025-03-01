@@ -33,7 +33,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:8080",
-        "https://brace-k7uz.onrender.com"  # Your Render URL
+        "https://brace-k7uz.onrender.com",  # Backend URL
+        "https://brace-frontend.onrender.com"  # Frontend URL (will be created)
     ],
     allow_credentials=True,
     allow_methods=["*"],
