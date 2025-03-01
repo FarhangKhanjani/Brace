@@ -1,0 +1,394 @@
+.dashboard-container {
+  padding: 2rem;
+  min-height: 100vh;
+  background-color: #13111c;
+  color: white;
+}
+
+.dashboard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.dashboard-nav button {
+  padding: 8px 16px;
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dashboard-content {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.dashboard-stats {
+  margin-top: 20px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2rem;
+}
+
+.logout-btn {
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.create-order-btn {
+  background-color: #00dac6;
+  color: black;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.order-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.order-form-container {
+  background-color: #1e1b2e;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.order-form-container h2 {
+  color: white;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: white;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #2c2c2c;
+  border-radius: 5px;
+  background-color: #13111c;
+  color: white;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.submit-btn,
+.cancel-btn {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.submit-btn {
+  background-color: #00dac6;
+  color: black;
+}
+
+.cancel-btn {
+  background-color: #2c2c2c;
+  color: white;
+}
+
+.error-message {
+  background-color: #ff44445e;
+  color: #ff9999;
+  padding: 0.8rem;
+  border-radius: 5px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.orders-section {
+  margin-top: 2rem;
+}
+
+.orders-section h3 {
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.order-card {
+  background-color: #1e1b2e;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.order-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.9rem;
+}
+
+.status-open {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.price-info p {
+  margin: 0.5rem 0;
+}
+
+.stop-loss {
+  color: #ff4444;
+}
+
+.take-profit {
+  color: #4CAF50;
+}
+
+.order-date {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.symbol-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.crypto-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.symbol-container h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.profit-percentage {
+  display: block;
+  color: #4caf50;
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+.timestamp {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.price-slider {
+  position: relative;
+  padding: 1rem 0;
+}
+
+.slider-points {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.slider-bar {
+  height: 2px;
+  background-color: #2c2c2c;
+  position: relative;
+  margin: 1rem 0;
+}
+
+.slider-progress {
+  position: absolute;
+  height: 100%;
+  width: 2px;
+  background-color: #4caf50;
+  transition: left 0.3s ease;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Add points on the slider */
+.slider-points span {
+  position: relative;
+}
+
+.slider-points span::before {
+  content: "";
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .slider-labels {
+    font-size: 0.7rem;
+  }
+
+  .order-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.profit-percentage.positive {
+  color: #4caf50;
+}
+
+.profit-percentage.negative {
+  color: #ff4444;
+}
+
+.current-price {
+  font-weight: bold;
+}
+
+.dashboard-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.profile-btn {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-container {
+    background-color: #1e1b2e;
+    padding: 2rem;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.modal-container h2 {
+    color: white;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+select {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #2c2c2c;
+    border-radius: 5px;
+    background-color: #13111c;
+    color: white;
+}
+
+.success-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 5px;
+    z-index: 1000;
+    animation: slideIn 0.5s ease-out, fadeOut 0.5s ease-in 2.5s;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
