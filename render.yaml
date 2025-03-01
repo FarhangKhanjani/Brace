@@ -1,11 +1,12 @@
 services:
   - type: web
-    name: crypto-api
+    name: brace-api
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SUPABASE_URL
-        sync: false
+        value: https://awrjlkqvnugwbtujdsdd.supabase.co
       - key: SUPABASE_KEY
-        sync: false 
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3cmpsa3F2bnVnd2J0dWpkc2RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1NTk4NzYsImV4cCI6MjA1NjEzNTg3Nn0.fO3IQezb29yefgj90AkT9ReJuHpv1cuAlj5AD_MpWiE
+    autoDeploy: true
