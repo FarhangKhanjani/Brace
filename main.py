@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, Depends, Form
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
@@ -34,7 +33,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:8080",
-        "https://your-render-url.onrender.com"  # Add your Render URL here
+        "https://brace-k7uz.onrender.com"  # Your Render URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -74,9 +73,6 @@ except ValueError as ve:
 except Exception as e:
     print(f"Supabase Error: {str(e)}")
     raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
-
-# Setup templates
-templates = Jinja2Templates(directory="templates")
 
 # Models
 class UserCreate(BaseModel):
