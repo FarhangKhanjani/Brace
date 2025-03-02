@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './ProfileUpdate.css';
+import config from '../config';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_URL = config.API_URL;
 
 const ProfileUpdate = ({ user, onClose }) => {
     const [formData, setFormData] = useState({

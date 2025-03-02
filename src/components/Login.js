@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import './Login.css';
+import config from '../config';
+
+const API_URL = config.API_URL;
 
 const Login = () => {
     const [email, setEmail] = useState('');

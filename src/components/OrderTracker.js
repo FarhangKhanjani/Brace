@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './OrderTracker.css';
+import config from '../config';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_URL = config.API_URL;
 
 // Mapping of common crypto symbols to logos
 const cryptoLogos = {

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import config from '../config';
+const API_URL = config.API_URL;
 
 const OrderForm = ({ onSubmit, user }) => {
     const [symbol, setSymbol] = useState('');

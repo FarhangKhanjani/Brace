@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import config from './config';
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseKey = process.env.REACT_APP_SUPABASE_KEY;
+// Use values from config instead of direct env variables
+const supabaseUrl = config.SUPABASE_URL;
+const supabaseKey = config.SUPABASE_KEY;
 
 // Add more detailed logging
 console.log('Environment check:', {
