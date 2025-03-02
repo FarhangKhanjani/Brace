@@ -75,12 +75,41 @@ try:
     test = supabase.table('users').select("count").limit(1).execute()
     print("Supabase connection successful!")
     
+    # Add at startup after connecting to Supabase
+    try:
+        # Check if order_history table exists
+        response = supabase.table('order_history').select('count').limit(1).execute()
+        print("Order history table exists")
+    except Exception as e:
+        print(f"Warning: Order history table might not exist: {e}")
+        print("Please create the order_history table in your Supabase database")
+    
 except ValueError as ve:
     print(f"Configuration Error: {str(ve)}")
     raise HTTPException(status_code=500, detail=str(ve))
 except Exception as e:
     print(f"Supabase Error: {str(e)}")
     raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
+
+# Add this to your startup code to verify the connection
+@app.on_event("startup")
+async def startup_db_client():
+    try:
+        # Test the connection with a simple query
+        test = supabase.table('orders').select("count").limit(1).execute()
+        print("Supabase orders table connection successful!")
+        
+        # Test order_history table
+        try:
+            test_history = supabase.table('order_history').select("count").limit(1).execute()
+            print("Supabase order_history table connection successful!")
+        except Exception as e:
+            print(f"WARNING: order_history table may not exist: {str(e)}")
+            print("Creating order_history table...")
+            # You could add code here to create the table if needed
+            
+    except Exception as e:
+        print(f"ERROR: Database connection failed: {str(e)}")
 
 # Models
 class UserCreate(BaseModel):
@@ -93,6 +122,7 @@ class OrderCreate(BaseModel):
     entry_price: float
     stop_loss: float
     take_profit: float
+    position_type: Optional[str] = "long"  # Default to long
 
 class OrderResponse(BaseModel):
     id: str
@@ -292,23 +322,24 @@ async def create_order(order: OrderCreate):
                 print(f"Failed to create user: {str(user_error)}")
                 raise HTTPException(status_code=404, detail=f"User not found and could not be created: {str(user_error)}")
 
-        # Create the order with explicit type conversions
-        order_data = {
+        # Create new order
+        new_order = {
             "id": str(uuid.uuid4()),
-            "user_id": str(order.user_id),  # Ensure user_id is a string
-            "symbol": str(order.symbol).upper(),
-            "entry_price": float(order.entry_price),
-            "stop_loss": float(order.stop_loss),
-            "take_profit": float(order.take_profit),
+            "user_id": order.user_id,
+            "symbol": order.symbol,
+            "entry_price": order.entry_price,
+            "stop_loss": order.stop_loss,
+            "take_profit": order.take_profit,
+            "position_type": order.position_type,  # Add position type
             "status": "open",
             "created_at": datetime.now().isoformat()
         }
         
-        print(f"Creating order with data: {order_data}")
+        print(f"Creating order with data: {new_order}")
         
         try:
             response = supabase.table('orders')\
-                .insert(order_data)\
+                .insert(new_order)\
                 .execute()
                 
             print(f"Order creation response: {response}")
@@ -509,6 +540,231 @@ async def health_check():
         "version": "1.0.0",
         "environment": os.getenv("ENVIRONMENT", "development")
     }
+
+@app.put("/orders/{order_id}", tags=["orders"])
+async def update_order(order_id: str, order_update: dict):
+    """
+    Update an existing order in Supabase
+    """
+    try:
+        print(f"Updating order: {order_id}")
+        print(f"Update data: {order_update}")
+        
+        # First check if order exists
+        order_check = supabase.table('orders')\
+            .select('*')\
+            .eq('id', order_id)\
+            .execute()
+            
+        if not order_check.data:
+            raise HTTPException(status_code=404, detail="Order not found")
+            
+        # Update only provided fields
+        update_data = {}
+        
+        if "symbol" in order_update:
+            update_data["symbol"] = order_update["symbol"]
+        if "entry_price" in order_update:
+            update_data["entry_price"] = order_update["entry_price"]
+        if "stop_loss" in order_update:
+            update_data["stop_loss"] = order_update["stop_loss"]
+        if "take_profit" in order_update:
+            update_data["take_profit"] = order_update["take_profit"]
+            
+        # Add updated_at timestamp
+        update_data["updated_at"] = datetime.now().isoformat()
+            
+        # Update the order
+        response = supabase.table('orders')\
+            .update(update_data)\
+            .eq('id', order_id)\
+            .execute()
+            
+        print(f"Update response: {response}")
+        
+        return {"message": "Order updated successfully", "order": response.data[0]}
+        
+    except Exception as e:
+        print(f"Error updating order: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/orders/{order_id}/close", tags=["orders"])
+async def close_order(order_id: str, close_data: dict):
+    """
+    Close an order and move it to order history
+    """
+    try:
+        print(f"Closing order: {order_id}")
+        print(f"Close data received: {close_data}")
+        
+        # Validate input data
+        if not close_data:
+            close_data = {}  # Initialize if None
+            
+        if not isinstance(close_data, dict):
+            raise HTTPException(status_code=400, detail="Invalid close data format")
+        
+        # First get the order details
+        try:
+            order = supabase.table('orders')\
+                .select('*')\
+                .eq('id', order_id)\
+                .execute()
+                
+            if not order.data:
+                error_msg = f"Order with ID {order_id} not found"
+                print(error_msg)
+                raise HTTPException(status_code=404, detail=error_msg)
+                
+            order_data = order.data[0]
+            print(f"Order found: {order_data}")
+        except Exception as e:
+            print(f"Error fetching order: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error fetching order: {str(e)}")
+        
+        # Calculate profit/loss
+        try:
+            entry_price = float(order_data["entry_price"])
+            close_price = float(close_data.get("close_price", 0))
+            
+            if close_price <= 0:
+                # If no close price provided, fetch current price
+                try:
+                    symbol = order_data["symbol"]
+                    current_price_response = await get_current_price(symbol)
+                    close_price = float(current_price_response.get("price", 0))
+                    print(f"Using fetched current price: {close_price}")
+                except Exception as e:
+                    print(f"Error fetching current price: {str(e)}")
+                    close_price = entry_price  # Fallback to entry price
+            
+            # Calculate profit/loss based on position type
+            position_type = order_data.get("position_type", "long")  # Default to long if not specified
+            
+            if position_type == "short":
+                # For short positions, profit when price goes down
+                profit_loss = ((entry_price - close_price) / entry_price) * 100
+            else:
+                # For long positions, profit when price goes up
+                profit_loss = ((close_price - entry_price) / entry_price) * 100
+                
+            print(f"Calculated profit/loss: {profit_loss}% for {position_type} position")
+            
+        except Exception as e:
+            print(f"Error calculating profit/loss: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error calculating profit/loss: {str(e)}")
+        
+        # Create history record
+        try:
+            history_record = {
+                "id": str(uuid.uuid4()),
+                "order_id": str(order_id),
+                "user_id": str(order_data["user_id"]),
+                "symbol": str(order_data["symbol"]),
+                "entry_price": float(order_data["entry_price"]),
+                "stop_loss": float(order_data["stop_loss"]),
+                "take_profit": float(order_data["take_profit"]),
+                "position_type": str(order_data.get("position_type", "long")),
+                "close_price": float(close_price),
+                "profit_loss": float(profit_loss),
+                "close_reason": str(close_data.get("close_reason", "manual")),
+                "created_at": str(order_data["created_at"]),
+                "closed_at": datetime.now().isoformat()
+            }
+            
+            print(f"Creating history record: {history_record}")
+            
+            # Validate all required fields are present
+            required_fields = ["id", "order_id", "user_id", "symbol", "entry_price", 
+                              "stop_loss", "take_profit", "close_price", "profit_loss", 
+                              "close_reason", "created_at", "closed_at"]
+            
+            for field in required_fields:
+                if field not in history_record or history_record[field] is None:
+                    raise ValueError(f"Missing required field: {field}")
+                    
+        except Exception as e:
+            print(f"Error preparing history record: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error preparing history record: {str(e)}")
+        
+        # Insert into order_history
+        try:
+            # First check if the table exists
+            try:
+                table_check = supabase.table('order_history').select('count').limit(1).execute()
+                print("order_history table exists")
+            except Exception as table_error:
+                print(f"Error checking order_history table: {str(table_error)}")
+                raise HTTPException(status_code=500, 
+                                   detail="order_history table may not exist. Please create it first.")
+            
+            # Now try to insert
+            history_response = supabase.table('order_history')\
+                .insert(history_record)\
+                .execute()
+                
+            print(f"History response: {history_response}")
+            
+            if not history_response.data:
+                raise Exception("Insert succeeded but returned no data")
+                
+        except Exception as e:
+            print(f"Error inserting into order_history: {str(e)}")
+            
+            # Try to get more detailed error information
+            error_detail = str(e)
+            if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                error_detail += f" Response: {e.response.text}"
+                
+            raise HTTPException(status_code=500, detail=f"Error inserting into order_history: {error_detail}")
+            
+        # Delete from active orders
+        try:
+            delete_response = supabase.table('orders')\
+                .delete()\
+                .eq('id', order_id)\
+                .execute()
+                
+            print(f"Delete response: {delete_response}")
+        except Exception as e:
+            print(f"Error deleting from orders: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error deleting from orders: {str(e)}")
+            
+        return {
+            "message": "Order closed successfully",
+            "history": history_response.data[0]
+        }
+        
+    except HTTPException as he:
+        # Re-raise HTTP exceptions
+        raise he
+    except Exception as e:
+        error_msg = f"Error closing order: {str(e)}"
+        print(error_msg)
+        import traceback
+        traceback.print_exc()  # Print full traceback for debugging
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.get("/order-history/{user_id}", tags=["orders"])
+async def get_order_history(user_id: str):
+    """
+    Get order history for a user
+    """
+    try:
+        print(f"Fetching order history for user: {user_id}")
+        
+        # Get all order history for the user
+        response = supabase.table('order_history')\
+            .select('*')\
+            .eq('user_id', user_id)\
+            .order('closed_at', desc=True)\
+            .execute()
+            
+        return {"history": response.data}
+        
+    except Exception as e:
+        print(f"Error fetching order history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 print(f"Current working directory: {os.getcwd()}")
 

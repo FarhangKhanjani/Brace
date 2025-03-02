@@ -6,6 +6,7 @@ import './Dashboard.css';
 import OrderForm from './OrderForm';
 import ProfileUpdate from './ProfileUpdate';
 import OrderTracker from './OrderTracker';
+import OrderHistory from './OrderHistory';
 import { toast } from 'react-toastify';
 import config from '../config';
 
@@ -20,6 +21,7 @@ function Dashboard() {
     const [showOrderForm, setShowOrderForm] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [activeTab, setActiveTab] = useState('orders');
 
     // Get user and orders
     useEffect(() => {
@@ -45,12 +47,6 @@ function Dashboard() {
                 });
         });
     }, [navigate]);
-
-    // Create Order button handler
-    const handleCreateOrderClick = () => {
-        setShowOrderForm(true);
-        setError(null);
-    };
 
     // Handle order submission
     const handleOrderSubmit = async (orderData) => {
@@ -125,6 +121,50 @@ function Dashboard() {
         }
     };
 
+    // Add these new handler functions
+    const handleOrderEdit = async (updatedOrder) => {
+        try {
+            // Refresh orders after edit
+            const ordersResponse = await axios.get(`${API_URL}/orders/${user.id}`);
+            if (ordersResponse.data && ordersResponse.data.orders) {
+                setOrders(ordersResponse.data.orders);
+                // Update selected order if it's the one that was edited
+                if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+                    setSelectedOrder(updatedOrder);
+                }
+            }
+            
+            // Show success message
+            toast.success("Order updated successfully!");
+        } catch (error) {
+            console.error("Error refreshing orders after edit:", error);
+            toast.error("Failed to refresh orders after edit");
+        }
+    };
+    
+    const handleOrderClose = async (closedOrder) => {
+        try {
+            // Refresh orders after closing
+            const ordersResponse = await axios.get(`${API_URL}/orders/${user.id}`);
+            if (ordersResponse.data && ordersResponse.data.orders) {
+                setOrders(ordersResponse.data.orders);
+                // Clear selected order if it was closed
+                if (selectedOrder && selectedOrder.id === closedOrder.order_id) {
+                    setSelectedOrder(null);
+                }
+            }
+            
+            // Show success message
+            toast.success(`Order closed with ${parseFloat(closedOrder.profit_loss).toFixed(2)}% P/L`);
+            
+            // Switch to history tab
+            setActiveTab('history');
+        } catch (error) {
+            console.error("Error refreshing orders after closing:", error);
+            toast.error("Failed to refresh orders after closing");
+        }
+    };
+
     // If no user yet, show minimal content
     if (!user) {
         return <div className="dashboard">Connecting to your account...</div>;
@@ -133,19 +173,19 @@ function Dashboard() {
     return (
         <div className="dashboard">
             <div className="dashboard-header">
-                <h1>Welcome, {user.email}</h1>
+                <h1>Welcome, {user?.user_metadata?.full_name || 'Trader'}</h1>
                 <div className="dashboard-actions">
                     <button 
-                        className="create-order-btn"
-                        onClick={handleCreateOrderClick}
-                    >
-                        Create Order
-                    </button>
-                    <button 
-                        className="profile-btn"
+                        className="profile-btn" 
                         onClick={() => setShowProfileModal(true)}
                     >
                         Update Profile
+                    </button>
+                    <button 
+                        className="add-order-btn" 
+                        onClick={() => setShowOrderForm(true)}
+                    >
+                        Add New Order
                     </button>
                 </div>
             </div>
@@ -153,20 +193,70 @@ function Dashboard() {
             {error && <div className="error-message">{error}</div>}
             {message && <div className="success-message">{message}</div>}
 
+            <div className="dashboard-tabs">
+                <button 
+                    className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('orders')}
+                >
+                    Active Orders
+                </button>
+                <button 
+                    className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('history')}
+                >
+                    Order History
+                </button>
+            </div>
+
+            <div className="tab-content">
+                {activeTab === 'orders' && (
+                    <div className="orders-container">
+                        <div className="orders-list">
+                            <h2>Your Orders</h2>
+                            <div className="orders-grid">
+                                {orders.length > 0 ? (
+                                    orders.map((order) => (
+                                        <OrderCard 
+                                            key={order.id} 
+                                            order={order} 
+                                            onClick={handleOrderClick}
+                                        />
+                                    ))
+                                ) : (
+                                    <p>No orders yet. Create your first order!</p>
+                                )}
+                            </div>
+                        </div>
+                        
+                        {selectedOrder && (
+                            <div className="tracker-section">
+                                <h2>Order Tracker</h2>
+                                <OrderTracker 
+                                    order={selectedOrder} 
+                                    onDelete={handleOrderDelete}
+                                    onEdit={handleOrderEdit}
+                                    onClose={handleOrderClose}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                {activeTab === 'history' && (
+                    <div className="history-container">
+                        {user && <OrderHistory userId={user.id} />}
+                    </div>
+                )}
+            </div>
+
             {showOrderForm && (
-                <div className="order-form-overlay">
-                    <div className="order-form-container">
-                        <h2>Create New Order</h2>
+                <div className="modal-overlay">
+                    <div className="modal-content">
                         <OrderForm 
-                            onSubmit={handleOrderSubmit}
-                            user={user}
+                            onSubmit={handleOrderSubmit} 
+                            user={user} 
+                            onCancel={() => setShowOrderForm(false)}
                         />
-                        <button 
-                            className="cancel-btn"
-                            onClick={() => setShowOrderForm(false)}
-                        >
-                            Cancel
-                        </button>
                     </div>
                 </div>
             )}
@@ -177,58 +267,46 @@ function Dashboard() {
                     onClose={() => setShowProfileModal(false)} 
                 />
             )}
-
-            <div className="orders-section">
-                <h2>Your Orders</h2>
-                <div className="orders-grid">
-                    {orders.length > 0 ? (
-                        orders.map((order) => (
-                            <div 
-                                key={order.id} 
-                                className={`order-card ${selectedOrder?.id === order.id ? 'selected' : ''}`}
-                                onClick={() => handleOrderClick(order)}
-                            >
-                                <div className="order-header">
-                                    <h3>{order.symbol}</h3>
-                                    <span className={`status-badge ${order.status}`}>{order.status}</span>
-                                </div>
-                                <div className="order-details">
-                                    <div className="detail-row">
-                                        <span className="detail-label">Entry Price:</span>
-                                        <span className="detail-value">${parseFloat(order.entry_price).toFixed(2)}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                        <span className="detail-label">Stop Loss:</span>
-                                        <span className="detail-value">${parseFloat(order.stop_loss).toFixed(2)}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                        <span className="detail-label">Take Profit:</span>
-                                        <span className="detail-value">${parseFloat(order.take_profit).toFixed(2)}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                        <span className="detail-label">Created:</span>
-                                        <span className="detail-value">{new Date(order.created_at).toLocaleString()}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p>No orders yet. Create your first order!</p>
-                    )}
-                </div>
-            </div>
-
-            {selectedOrder && (
-                <div className="tracker-section">
-                    <h2>Order Tracker</h2>
-                    <OrderTracker 
-                        order={selectedOrder} 
-                        onDelete={handleOrderDelete} 
-                    />
-                </div>
-            )}
         </div>
     );
 }
+
+const OrderCard = ({ order, onClick }) => {
+    // Extract date from ISO string
+    const date = new Date(order.created_at).toLocaleString();
+    
+    // Add fallback for position_type if it doesn't exist in older orders
+    const positionType = order.position_type || 'long'; // Default to 'long' if undefined
+    
+    return (
+        <div className={`order-card ${positionType === 'short' ? 'short' : 'long'}`} onClick={() => onClick(order)}>
+            <div className="order-header">
+                <div className="order-symbol">{order.symbol}</div>
+                <div className={`order-position-type ${positionType}`}>
+                    {positionType.toUpperCase()}
+                </div>
+                <div className="order-status">{order.status.toUpperCase()}</div>
+            </div>
+            <div className="order-details">
+                <div className="detail-row">
+                    <span className="detail-label">Entry Price:</span>
+                    <span className="detail-value">{parseFloat(order.entry_price).toFixed(2)}</span>
+                </div>
+                <div className="detail-row">
+                    <span className="detail-label">Stop Loss:</span>
+                    <span className="detail-value">{parseFloat(order.stop_loss).toFixed(2)}</span>
+                </div>
+                <div className="detail-row">
+                    <span className="detail-label">Take Profit:</span>
+                    <span className="detail-value">{parseFloat(order.take_profit).toFixed(2)}</span>
+                </div>
+                <div className="detail-row created-at">
+                    <span className="detail-label">Created:</span>
+                    <span className="detail-value">{date}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default Dashboard; 

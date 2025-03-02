@@ -10,6 +10,7 @@ import EnvTest from './components/EnvTest';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import config from './config';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -58,43 +59,46 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="app">
-        <nav className="navbar">
-          <div className="logo">CryptoCap</div>
-          <div className="nav-links">
-            <Link to="/">Home</Link>
-            {session ? (
-              <>
-                <Link to="/dashboard">Dashboard</Link>
-                <button onClick={handleLogout}>Logout</button>
-              </>
-            ) : (
-              <Link to="/login" className="login-btn">Login</Link>
-            )}
-          </div>
-        </nav>
+    <>
+      <Router>
+        <div className="app">
+          <nav className="navbar">
+            <div className="logo">CryptoCap</div>
+            <div className="nav-links">
+              <Link to="/">Home</Link>
+              {session ? (
+                <>
+                  <Link to="/dashboard">Dashboard</Link>
+                  <button onClick={handleLogout}>Logout</button>
+                </>
+              ) : (
+                <Link to="/login" className="login-btn">Login</Link>
+              )}
+            </div>
+          </nav>
 
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route 
-            path="/login" 
-            element={session ? <Navigate to="/dashboard" /> : <Login />} 
-          />
-          <Route 
-            path="/signup" 
-            element={session ? <Navigate to="/dashboard" /> : <SignUp />} 
-          />
-          <Route 
-            path="/dashboard" 
-            element={session ? <Dashboard /> : <Navigate to="/login" />} 
-          />
-          <Route path="/env-test" element={<EnvTest />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </div>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route 
+              path="/login" 
+              element={session ? <Navigate to="/dashboard" /> : <Login />} 
+            />
+            <Route 
+              path="/signup" 
+              element={session ? <Navigate to="/dashboard" /> : <SignUp />} 
+            />
+            <Route 
+              path="/dashboard" 
+              element={session ? <Dashboard /> : <Navigate to="/login" />} 
+            />
+            <Route path="/env-test" element={<EnvTest />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </div>
+      </Router>
+      <Toaster position="top-right" />
       <ToastContainer />
-    </Router>
+    </>
   );
 }
 
