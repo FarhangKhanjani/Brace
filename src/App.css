@@ -38,9 +38,9 @@
 }
 
 .app {
-  background-color: #13111c;
-  color: white;
   min-height: 100vh;
+  background-color: #13111c;
+  color: #fff;
 }
 
 .navbar {
@@ -48,32 +48,40 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: #1e1b2e;
+  background-color: #1a1825;
 }
 
 .logo {
   font-size: 1.5rem;
   font-weight: bold;
+  color: #00DAC6;
 }
 
 .nav-links {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   align-items: center;
 }
 
 .nav-links a {
-  color: white;
+  color: #fff;
   text-decoration: none;
 }
 
-.login-btn {
-  background-color: #00dac6;
-  color: black;
+.nav-links button {
+  background-color: #ff4444;
+  color: white;
   border: none;
-  padding: 0.5rem 1.5rem;
-  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
   cursor: pointer;
+}
+
+.login-btn {
+  background-color: #00DAC6;
+  color: black !important;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
 }
 
 .hero-section {

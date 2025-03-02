@@ -1,0 +1,369 @@
+.order-tracker {
+    background-color: #1e1b2e;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: #fff;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.tracker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.tracker-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.crypto-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 50%;
+    background-color: white;
+    padding: 2px;
+}
+
+.tracker-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #fff;
+}
+
+.profit-percent {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.profit-percent.positive {
+    color: #4caf50;
+}
+
+.profit-percent.negative {
+    color: #f44336;
+}
+
+.tracker-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.timestamp {
+    color: #888;
+    font-size: 14px;
+}
+
+.tracker-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.delete-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+    background-color: #d32f2f;
+}
+
+.confirm-text {
+    color: #fff;
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+.confirm-btn {
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.confirm-btn.yes {
+    background-color: #f44336;
+    color: white;
+}
+
+.confirm-btn.no {
+    background-color: #424242;
+    color: white;
+}
+
+.price-points {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+.price-point {
+    text-align: center;
+    position: relative;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
+
+.price-point:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.price-point.alert {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 82, 82, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+    }
+}
+
+.price-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin: 0 auto 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.stop-loss-icon {
+    background-color: #f44336;
+}
+
+.entry-icon {
+    background-color: #2196f3;
+}
+
+.current-icon {
+    background-color: #4caf50;
+}
+
+.take-profit-icon {
+    background-color: #9c27b0;
+}
+
+.price-value {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.price-label {
+    font-size: 14px;
+    color: #888;
+}
+
+.price-point.highlight .price-value {
+    color: #4caf50;
+}
+
+.alert-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #f44336;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: bold;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.price-slider {
+    position: relative;
+    height: 40px;
+    margin: 40px 0;
+}
+
+.slider-track {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px;
+    width: 100%;
+    background-color: #333;
+    border-radius: 2px;
+}
+
+.slider-progress {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px;
+    background-color: #4caf50;
+    border-radius: 2px;
+    left: 0;
+}
+
+.slider-markers {
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.marker {
+    position: absolute;
+    transform: translateX(-50%);
+}
+
+.marker-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.marker-label {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.marker.stop-loss {
+    left: 0%;
+}
+
+.marker.stop-loss .marker-dot {
+    background-color: #f44336;
+}
+
+.marker.stop-loss .marker-label {
+    color: #f44336;
+}
+
+.marker.entry-price {
+    left: 33%;
+}
+
+.marker.entry-price .marker-dot {
+    background-color: #2196f3;
+}
+
+.marker.entry-price .marker-label {
+    color: #2196f3;
+}
+
+.marker.current-price .marker-dot {
+    background-color: #4caf50;
+    width: 16px;
+    height: 16px;
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.3);
+    z-index: 10;
+}
+
+.marker-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: rgba(76, 175, 80, 0.2);
+    animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.3;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.7;
+    }
+}
+
+.marker.take-profit {
+    left: 100%;
+}
+
+.marker.take-profit .marker-dot {
+    background-color: #9c27b0;
+}
+
+.marker.take-profit .marker-label {
+    color: #9c27b0;
+}
+
+.tracker-loading, .tracker-error {
+    padding: 20px;
+    text-align: center;
+    color: #fff;
+    background-color: #1e1b2e;
+    border-radius: 10px;
+}
+
+.tracker-error {
+    color: #f44336;
+}
+
+.price-analysis {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.analysis-text {
+    margin: 0;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.analysis-text i {
+    font-size: 18px;
+}
+
+.analysis-text.positive {
+    color: #4caf50;
+}
+
+.analysis-text.negative {
+    color: #f44336;
+} 

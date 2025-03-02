@@ -1,7 +1,9 @@
 .home-container {
   min-height: 100vh;
   background-color: #13111c;
-  padding: 2rem;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .hero-section {
@@ -143,7 +145,8 @@
   stroke: #ff4444;
 }
 
-.loading, .error {
+.loading,
+.error {
   text-align: center;
   padding: 2rem;
   color: white;
@@ -170,4 +173,33 @@
   .trend-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.crypto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.crypto-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.crypto-card:hover {
+  transform: translateY(-5px);
+}
+
+.crypto-card h2 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.crypto-card p {
+  margin: 8px 0;
+  color: #666;
 }

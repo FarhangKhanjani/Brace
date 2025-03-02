@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import './Login.css';
 
@@ -8,27 +8,21 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        setError('');
-        setLoading(true);
-        
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            setLoading(true);
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
-                password,
+                password
             });
 
             if (error) throw error;
-
-            if (data.user) {
-                navigate('/dashboard');
-            }
+            // Auth state will update automatically and App.js will redirect
             
         } catch (error) {
-            setError(error.message || 'Invalid credentials');
+            setError(error.message);
         } finally {
             setLoading(false);
         }
@@ -60,7 +54,7 @@ const Login = () => {
             <div className="login-box">
                 <h2>Login to CryptoCap</h2>
                 {error && <div className="error-message">{error}</div>}
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleLogin}>
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <input

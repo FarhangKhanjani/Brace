@@ -12,13 +12,6 @@ import uuid
 
 # Load environment variables
 load_dotenv()
-print(f"Supabase URL: {os.getenv('SUPABASE_URL')}")
-print(f"Supabase Key exists: {bool(os.getenv('SUPABASE_KEY'))}")
-
-# After load_dotenv()
-print("Debug environment variables:")
-print(f"URL being used: '{os.getenv('SUPABASE_URL')}'")  # Note the quotes to see any spaces
-print(f"Key being used: '{os.getenv('SUPABASE_KEY')}'")
 
 # Initialize FastAPI
 app = FastAPI(
@@ -27,14 +20,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Update CORS middleware with your frontend URL
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:8080",
-        "https://brace-k7uz.onrender.com",  # Backend URL
-        "https://brace-frontend.onrender.com"  # Frontend URL (will be created)
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -45,24 +38,25 @@ app.add_middleware(
 supabase: Client = None
 
 try:
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_KEY")
+    # Get environment variables
+    supabase_url = os.getenv("REACT_APP_SUPABASE_URL")
+    supabase_service_key = os.getenv("SUPABASE_SERVICE_KEY")
     
     # Debug prints
     print("Attempting Supabase connection with:")
     print(f"URL: {supabase_url}")
-    print(f"Key length: {len(supabase_key) if supabase_key else 0}")
+    print(f"Service Key available: {'Yes' if supabase_service_key else 'No'}")
     
-    if not supabase_url or not supabase_key:
-        raise ValueError("Supabase URL or Key not found in environment variables")
+    if not supabase_url or not supabase_service_key:
+        raise ValueError("Supabase URL or Service Key not found in environment variables")
     
     if not supabase_url.startswith("https://"):
         raise ValueError("Supabase URL must start with https://")
     
-    if len(supabase_key) < 30:  # Supabase keys are typically very long
-        raise ValueError("Supabase key appears to be invalid (too short)")
+    if len(supabase_service_key) < 30:  # Supabase service keys are typically very long
+        raise ValueError("Supabase service key appears to be invalid (too short)")
         
-    supabase = create_client(supabase_url, supabase_key)
+    supabase = create_client(supabase_url, supabase_service_key)
     
     # Test the connection with a simple query
     test = supabase.table('users').select("count").limit(1).execute()
@@ -257,7 +251,7 @@ async def create_order(order: OrderCreate):
     Create a new order in Supabase
     """
     try:
-        print(f"Received order request: {order}")  # Debug log
+        print(f"Received order request: {order}")
         
         # Validate the user exists
         user_response = supabase.table('users')\
@@ -265,13 +259,31 @@ async def create_order(order: OrderCreate):
             .eq('id', order.user_id)\
             .execute()
             
+        print(f"User lookup response: {user_response}")
+            
         if not user_response.data:
-            raise HTTPException(status_code=404, detail="User not found")
+            # Try to create the user if it doesn't exist
+            try:
+                print(f"User not found, attempting to create: {order.user_id}")
+                new_user = {
+                    "id": order.user_id,
+                    "email": f"user_{order.user_id}@example.com",  # Placeholder
+                    "password": "placeholder_password",  # Add a placeholder password
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat()
+                }
+                
+                user_insert = supabase.table('users').insert(new_user).execute()
+                print(f"User creation response: {user_insert}")
+            except Exception as user_error:
+                print(f"Failed to create user: {str(user_error)}")
+                raise HTTPException(status_code=404, detail=f"User not found and could not be created: {str(user_error)}")
 
+        # Create the order with explicit type conversions
         order_data = {
             "id": str(uuid.uuid4()),
-            "user_id": order.user_id,
-            "symbol": order.symbol.upper(),
+            "user_id": str(order.user_id),  # Ensure user_id is a string
+            "symbol": str(order.symbol).upper(),
             "entry_price": float(order.entry_price),
             "stop_loss": float(order.stop_loss),
             "take_profit": float(order.take_profit),
@@ -281,20 +293,30 @@ async def create_order(order: OrderCreate):
         
         print(f"Creating order with data: {order_data}")
         
-        response = supabase.table('orders')\
-            .insert(order_data)\
-            .execute()
+        try:
+            response = supabase.table('orders')\
+                .insert(order_data)\
+                .execute()
+                
+            print(f"Order creation response: {response}")
             
-        print(f"Supabase response: {response}")
-        
-        if not response.data:
-            raise HTTPException(
-                status_code=400, 
-                detail="Failed to create order in database"
-            )
+            if not response.data:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Failed to create order in database"
+                )
+                
+            return response.data[0]
+        except Exception as insert_error:
+            print(f"Order insert error: {str(insert_error)}")
+            # Try to get more detailed error information
+            error_detail = str(insert_error)
+            if hasattr(insert_error, 'details'):
+                error_detail += f" Details: {insert_error.details}"
+            raise HTTPException(status_code=500, detail=f"Order creation failed: {error_detail}")
             
-        return response.data[0]
-            
+    except HTTPException as he:
+        raise he
     except Exception as e:
         print(f"Error creating order: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -321,27 +343,147 @@ async def get_user_orders(user_id: str):
 @app.get("/current-price/{symbol}", tags=["market"])
 async def get_current_price(symbol: str):
     """
-    Get current price for a symbol (mock data for now)
+    Get current price for a symbol from Binance
     """
     try:
-        # Mock prices - in a real app, this would fetch from a crypto API
-        mock_prices = {
-            "BTC": 45000.00,
-            "ETH": 3000.00,
-            "BNB": 300.00,
-            "SOL": 100.00
-        }
+        # Convert symbol to Binance format
+        binance_symbol = f"{symbol}USDT"
         
-        price = mock_prices.get(symbol.upper())
-        if price is None:
+        # Get real-time price from Binance
+        response = requests.get(f'https://api.binance.com/api/v3/ticker/price?symbol={binance_symbol}')
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "symbol": symbol,
+                "price": float(data['price'])
+            }
+        else:
             raise HTTPException(status_code=404, detail="Symbol not found")
             
-        return {
-            "symbol": symbol.upper(),
-            "price": price
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/update-profile/{user_id}", tags=["auth"])
+async def update_profile(
+    user_id: str,
+    request: Request
+):
+    """
+    Update user profile in Supabase database
+    """
+    try:
+        # Get request body
+        body = await request.json()
+        print(f"Updating profile for user: {user_id}")
+        print(f"Update data: {body}")
+        
+        # Create update data with only provided fields
+        update_data = {
+            "updated_at": datetime.now().isoformat()
         }
         
+        # Add fields from request body
+        if "email" in body:
+            update_data["email"] = body["email"]
+        if "full_name" in body:
+            update_data["full_name"] = body["full_name"]
+        if "birth_date" in body:
+            update_data["birth_date"] = body["birth_date"]
+        if "nickname" in body:
+            update_data["nickname"] = body["nickname"]
+        if "gender" in body:
+            update_data["gender"] = body["gender"]
+
+        print(f"Final update data: {update_data}")
+        
+        # Update user in the users table
+        response = supabase.table('users')\
+            .update(update_data)\
+            .eq('id', user_id)\
+            .execute()
+        
+        print(f"Update response: {response}")
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="User not found or update failed")
+            
+        return {"message": "Profile updated successfully", "user": response.data[0]}
+        
     except Exception as e:
+        print(f"Profile update error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ensure-user", tags=["auth"])
+async def ensure_user(user_data: dict):
+    """
+    Ensure a user exists in the users table
+    """
+    try:
+        user_id = user_data.get("id")
+        email = user_data.get("email")
+        
+        if not user_id or not email:
+            raise HTTPException(status_code=400, detail="Missing user ID or email")
+            
+        print(f"Ensuring user exists: {user_id}, {email}")
+        
+        # Check if user exists
+        user_response = supabase.table('users')\
+            .select('*')\
+            .eq('id', user_id)\
+            .execute()
+            
+        # If user doesn't exist, create them
+        if not user_response.data:
+            print(f"Creating new user record for {user_id}")
+            new_user = {
+                "id": user_id,
+                "email": email,
+                "password": "placeholder_password",  # Add a placeholder password
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            }
+            
+            insert_response = supabase.table('users').insert(new_user).execute()
+            print(f"User creation response: {insert_response}")
+            return {"message": "User created successfully", "user": insert_response.data[0]}
+        
+        return {"message": "User already exists", "user": user_response.data[0]}
+            
+    except Exception as e:
+        print(f"Error ensuring user: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/orders/{order_id}", tags=["orders"])
+async def delete_order(order_id: str):
+    """
+    Delete an order from Supabase
+    """
+    try:
+        print(f"Deleting order: {order_id}")
+        
+        # First check if order exists
+        order_check = supabase.table('orders')\
+            .select('*')\
+            .eq('id', order_id)\
+            .execute()
+            
+        if not order_check.data:
+            raise HTTPException(status_code=404, detail="Order not found")
+            
+        # Delete the order
+        response = supabase.table('orders')\
+            .delete()\
+            .eq('id', order_id)\
+            .execute()
+            
+        print(f"Delete response: {response}")
+        
+        return {"message": "Order deleted successfully"}
+        
+    except Exception as e:
+        print(f"Error deleting order: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 print(f"Current working directory: {os.getcwd()}")
