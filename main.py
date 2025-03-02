@@ -13,6 +13,14 @@ import uuid
 # Load environment variables
 load_dotenv()
 
+# Add these debug prints at the start
+print("==== Environment Variables Debug ====")
+print(f"Current working directory: {os.getcwd()}")
+print(f"Environment variables present: {list(os.environ.keys())}")
+print(f"SUPABASE_URL present: {'REACT_APP_SUPABASE_URL' in os.environ}")
+print(f"SUPABASE_KEY present: {'SUPABASE_SERVICE_KEY' in os.environ}")
+print("===================================")
+
 # Initialize FastAPI
 app = FastAPI(
     title="Crypto API",
@@ -27,7 +35,10 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:8080",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080"
+        "http://127.0.0.1:8080",
+        "https://brace-api.onrender.com",  # Add your Render frontend URL
+        "https://brace-frontend.onrender.com",   # Add other potential Render URLs
+        "*"  # Optional: Allow all origins in development (remove in production)
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -42,10 +53,12 @@ try:
     supabase_url = os.getenv("REACT_APP_SUPABASE_URL")
     supabase_service_key = os.getenv("SUPABASE_SERVICE_KEY")
     
-    # Debug prints
+    # More detailed debug prints
     print("Attempting Supabase connection with:")
-    print(f"URL: {supabase_url}")
+    print(f"URL: {supabase_url[:10]}... (length: {len(supabase_url) if supabase_url else 0})")
     print(f"Service Key available: {'Yes' if supabase_service_key else 'No'}")
+    if supabase_service_key:
+        print(f"Service Key length: {len(supabase_service_key)}")
     
     if not supabase_url or not supabase_service_key:
         raise ValueError("Supabase URL or Service Key not found in environment variables")
@@ -485,6 +498,17 @@ async def delete_order(order_id: str):
     except Exception as e:
         print(f"Error deleting order: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health", tags=["system"])
+async def health_check():
+    """
+    Health check endpoint to verify the API is running
+    """
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "environment": os.getenv("ENVIRONMENT", "development")
+    }
 
 print(f"Current working directory: {os.getcwd()}")
 

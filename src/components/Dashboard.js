@@ -7,8 +7,9 @@ import OrderForm from './OrderForm';
 import ProfileUpdate from './ProfileUpdate';
 import OrderTracker from './OrderTracker';
 import { toast } from 'react-toastify';
+import config from '../config';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_URL = config.API_URL;
 
 function Dashboard() {
     const navigate = useNavigate();
