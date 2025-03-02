@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard';
 import EnvTest from './components/EnvTest';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import config from './config';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -16,14 +17,18 @@ function App() {
 
   useEffect(() => {
     console.log('App mounted');
+    console.log('Current URL:', window.location.href);
+    console.log('Using API URL:', config.API_URL);
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('Got session:', session);
+      console.log('Session user:', session?.user);
       setSession(session);
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state changed:', session);
+      console.log('Auth state changed:', _event, session);
       setSession(session);
     });
 
@@ -85,6 +90,7 @@ function App() {
             element={session ? <Dashboard /> : <Navigate to="/login" />} 
           />
           <Route path="/env-test" element={<EnvTest />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
       <ToastContainer />

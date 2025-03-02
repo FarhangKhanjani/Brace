@@ -16,12 +16,16 @@ services:
   - type: web
     name: brace-frontend
     env: static
-    buildCommand: npm install && npm run build
+    buildCommand: npm run build
     staticPublishPath: ./build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: REACT_APP_API_URL
-        value: https://brace-k7uz.onrender.com
+        value: https://brace-api.onrender.com
       - key: REACT_APP_SUPABASE_URL
-        value: https://awrjlkqvnugwbtujdsdd.supabase.co
+        sync: false
       - key: REACT_APP_SUPABASE_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3cmpsa3F2bnVnd2J0dWpkc2RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1NTk4NzYsImV4cCI6MjA1NjEzNTg3Nn0.fO3IQezb29yefgj90AkT9ReJuHpv1cuAlj5AD_MpWiE
+        sync: false
