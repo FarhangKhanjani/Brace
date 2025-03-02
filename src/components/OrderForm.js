@@ -14,6 +14,7 @@ const OrderForm = ({ onSubmit, user, onCancel }) => {
     const [positionType, setPositionType] = useState('long'); // Default to long position
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [orderSubmitted, setOrderSubmitted] = useState(false); // Track if order was submitted
 
     const validatePrices = () => {
         const entry = parseFloat(entryPrice);
@@ -50,13 +51,20 @@ const OrderForm = ({ onSubmit, user, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Prevent duplicate submissions
+        if (isSubmitting || orderSubmitted) {
+            console.log("Preventing duplicate submission");
+            return;
+        }
+        
         setError('');
         setIsSubmitting(true);
         
         // Validate the prices before submission
         if (!validatePrices()) {
             setIsSubmitting(false);
-            return; // Stop form submission if validation fails
+            return;
         }
         
         try {
@@ -69,7 +77,14 @@ const OrderForm = ({ onSubmit, user, onCancel }) => {
                 position_type: positionType
             };
             
+            console.log("Submitting order:", orderData);
+            
             const response = await axios.post(`${API_URL}/orders`, orderData);
+            
+            console.log("Order created successfully:", response.data);
+            
+            // Mark as submitted to prevent duplicates
+            setOrderSubmitted(true);
             
             // Show success notification
             toast.success(`${positionType.toUpperCase()} order created for ${symbol.toUpperCase()}`);
@@ -83,12 +98,19 @@ const OrderForm = ({ onSubmit, user, onCancel }) => {
             setStopLoss('');
             setTakeProfit('');
             setPositionType('long');
+            
+            // Reset submission state after a delay
+            setTimeout(() => {
+                setOrderSubmitted(false);
+                setIsSubmitting(false);
+            }, 1000);
+            
         } catch (error) {
             console.error("Error creating order:", error);
             setError(error.response?.data?.detail || "Failed to create order");
             toast.error("Failed to create order");
-        } finally {
             setIsSubmitting(false);
+            setOrderSubmitted(false);
         }
     };
 

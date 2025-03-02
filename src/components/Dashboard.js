@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { supabase } from '../supabase';
@@ -22,6 +22,34 @@ function Dashboard() {
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [activeTab, setActiveTab] = useState('orders');
+    const [loading, setLoading] = useState(false);
+
+    // Define fetchOrders before using it
+    const fetchOrders = useCallback(async () => {
+        if (!user) return;
+        
+        try {
+            setLoading(true);
+            const response = await axios.get(`${API_URL}/orders/${user.id}`);
+            
+            if (response.data && response.data.orders) {
+                // Create a Map with order IDs as keys to prevent duplicates
+                const orderMap = new Map();
+                response.data.orders.forEach(order => {
+                    orderMap.set(order.id, order);
+                });
+                
+                // Convert Map back to array
+                const uniqueOrders = Array.from(orderMap.values());
+                setOrders(uniqueOrders);
+            }
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+            setError("Failed to load orders");
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
 
     // Get user and orders
     useEffect(() => {
@@ -34,19 +62,15 @@ function Dashboard() {
             
             // Set basic user info
             setUser(data.user);
-            
-            // Get orders for this user
-            axios.get(`${API_URL}/orders/${data.user.id}`)
-                .then(response => {
-                    if (response.data && response.data.orders) {
-                        setOrders(response.data.orders);
-                    }
-                })
-                .catch(err => {
-                    console.error("Error fetching orders:", err);
-                });
         });
     }, [navigate]);
+
+    // Fetch orders when user changes
+    useEffect(() => {
+        if (user) {
+            fetchOrders();
+        }
+    }, [user, fetchOrders]);
 
     // Handle order submission
     const handleOrderSubmit = async (orderData) => {
@@ -75,11 +99,8 @@ function Dashboard() {
             console.log("Order creation response:", response.data);
             
             if (response.data) {
-                // Refresh orders
-                const ordersResponse = await axios.get(`${API_URL}/orders/${user.id}`);
-                if (ordersResponse.data && ordersResponse.data.orders) {
-                    setOrders(ordersResponse.data.orders);
-                }
+                // Fetch all orders again to ensure we have the latest data
+                fetchOrders();
                 
                 setShowOrderForm(false);
                 setMessage("Order created successfully!");
@@ -97,86 +118,77 @@ function Dashboard() {
         setSelectedOrder(order);
     };
 
-    // Update the Dashboard component to include an onDelete handler
     const handleOrderDelete = async (orderId) => {
+        if (!user) return;
+        
         try {
-            // Refresh orders after deletion
-            const ordersResponse = await axios.get(`${API_URL}/orders/${user.id}`);
-            if (ordersResponse.data && ordersResponse.data.orders) {
-                setOrders(ordersResponse.data.orders);
-                // Clear selected order if it was the one deleted
-                if (selectedOrder && selectedOrder.id === orderId) {
-                    setSelectedOrder(null);
-                }
+            await axios.delete(`${API_URL}/orders/${orderId}`);
+            
+            // Fetch all orders again to ensure we have the latest data
+            fetchOrders();
+            
+            // Clear selected order if it was the one deleted
+            if (selectedOrder && selectedOrder.id === orderId) {
+                setSelectedOrder(null);
             }
             
             // Show success message
-            setMessage("Order deleted successfully!");
-            
-            // Clear message after 3 seconds
-            setTimeout(() => setMessage(""), 3000);
+            toast.success("Order deleted successfully");
         } catch (error) {
-            console.error("Error refreshing orders after deletion:", error);
-            setError("Failed to refresh orders after deletion");
+            console.error("Error deleting order:", error);
+            toast.error("Failed to delete order");
         }
     };
 
-    // Add these new handler functions
     const handleOrderEdit = async (updatedOrder) => {
+        if (!user) return;
+        
         try {
-            // Refresh orders after edit
-            const ordersResponse = await axios.get(`${API_URL}/orders/${user.id}`);
-            if (ordersResponse.data && ordersResponse.data.orders) {
-                setOrders(ordersResponse.data.orders);
-                // Update selected order if it's the one that was edited
-                if (selectedOrder && selectedOrder.id === updatedOrder.id) {
-                    setSelectedOrder(updatedOrder);
-                }
+            await axios.put(`${API_URL}/orders/${updatedOrder.id}`, updatedOrder);
+            
+            // Fetch all orders again to ensure we have the latest data
+            fetchOrders();
+            
+            // Update selected order if it's the one that was edited
+            if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+                setSelectedOrder(updatedOrder);
             }
             
             // Show success message
-            toast.success("Order updated successfully!");
+            toast.success("Order updated successfully");
         } catch (error) {
-            console.error("Error refreshing orders after edit:", error);
-            toast.error("Failed to refresh orders after edit");
-        }
-    };
-    
-    const handleOrderClose = async (closedOrder) => {
-        try {
-            // Refresh orders after closing
-            const ordersResponse = await axios.get(`${API_URL}/orders/${user.id}`);
-            if (ordersResponse.data && ordersResponse.data.orders) {
-                setOrders(ordersResponse.data.orders);
-                // Clear selected order if it was closed
-                if (selectedOrder && selectedOrder.id === closedOrder.order_id) {
-                    setSelectedOrder(null);
-                }
-            }
-            
-            // Show success message
-            toast.success(`Order closed with ${parseFloat(closedOrder.profit_loss).toFixed(2)}% P/L`);
-            
-            // Switch to history tab
-            setActiveTab('history');
-        } catch (error) {
-            console.error("Error refreshing orders after closing:", error);
-            toast.error("Failed to refresh orders after closing");
+            console.error("Error updating order:", error);
+            toast.error("Failed to update order");
         }
     };
 
-    // If no user yet, show minimal content
-    if (!user) {
-        return <div className="dashboard">Connecting to your account...</div>;
-    }
+    const handleOrderClose = async (closedOrder) => {
+        if (!user) return;
+        
+        try {
+            // Fetch all orders again to ensure we have the latest data
+            fetchOrders();
+            
+            // Clear selected order if it was closed
+            if (selectedOrder && selectedOrder.id === closedOrder.order_id) {
+                setSelectedOrder(null);
+            }
+            
+            // Show success message
+            toast.success("Order closed successfully");
+        } catch (error) {
+            console.error("Error handling closed order:", error);
+            toast.error("Failed to process closed order");
+        }
+    };
 
     return (
         <div className="dashboard">
-            <div className="dashboard-header">
-                <h1>Welcome, {user?.user_metadata?.full_name || 'Trader'}</h1>
-                <div className="dashboard-actions">
+            <header className="dashboard-header">
+                <h1>Welcome, {user ? user.email.split('@')[0] : 'Trader'}</h1>
+                <div className="header-actions">
                     <button 
-                        className="profile-btn" 
+                        className="update-profile-btn" 
                         onClick={() => setShowProfileModal(true)}
                     >
                         Update Profile
@@ -188,11 +200,11 @@ function Dashboard() {
                         Add New Order
                     </button>
                 </div>
-            </div>
-
+            </header>
+            
             {error && <div className="error-message">{error}</div>}
             {message && <div className="success-message">{message}</div>}
-
+            
             <div className="dashboard-tabs">
                 <button 
                     className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
@@ -207,25 +219,30 @@ function Dashboard() {
                     Order History
                 </button>
             </div>
-
+            
             <div className="tab-content">
                 {activeTab === 'orders' && (
                     <div className="orders-container">
-                        <div className="orders-list">
+                        <div className="orders-section">
                             <h2>Your Orders</h2>
-                            <div className="orders-grid">
-                                {orders.length > 0 ? (
-                                    orders.map((order) => (
-                                        <OrderCard 
-                                            key={order.id} 
-                                            order={order} 
-                                            onClick={handleOrderClick}
-                                        />
-                                    ))
-                                ) : (
-                                    <p>No orders yet. Create your first order!</p>
-                                )}
-                            </div>
+                            {loading ? (
+                                <div className="loading-indicator">Loading orders...</div>
+                            ) : (
+                                <div className="orders-grid">
+                                    {orders.length > 0 ? (
+                                        orders.map((order) => (
+                                            <OrderCard 
+                                                key={order.id} 
+                                                order={order} 
+                                                onClick={handleOrderClick}
+                                                isSelected={selectedOrder && selectedOrder.id === order.id}
+                                            />
+                                        ))
+                                    ) : (
+                                        <p>No orders yet. Create your first order!</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         
                         {selectedOrder && (
@@ -271,7 +288,7 @@ function Dashboard() {
     );
 }
 
-const OrderCard = ({ order, onClick }) => {
+const OrderCard = ({ order, onClick, isSelected }) => {
     // Extract date from ISO string
     const date = new Date(order.created_at).toLocaleString();
     
@@ -279,7 +296,10 @@ const OrderCard = ({ order, onClick }) => {
     const positionType = order.position_type || 'long'; // Default to 'long' if undefined
     
     return (
-        <div className={`order-card ${positionType === 'short' ? 'short' : 'long'}`} onClick={() => onClick(order)}>
+        <div 
+            className={`order-card ${positionType === 'short' ? 'short' : 'long'} ${isSelected ? 'selected' : ''}`} 
+            onClick={() => onClick(order)}
+        >
             <div className="order-header">
                 <div className="order-symbol">{order.symbol}</div>
                 <div className={`order-position-type ${positionType}`}>

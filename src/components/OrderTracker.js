@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './OrderTracker.css';
 import config from '../config';
@@ -15,6 +15,8 @@ import {
   Filler
 } from 'chart.js';
 import { toast } from 'react-hot-toast';
+import SimplePriceTracker from './SimplePriceTracker';
+import { getCurrentPrice } from '../services/priceService';
 
 const API_URL = config.API_URL;
 
@@ -53,7 +55,6 @@ const OrderTracker = ({ order, onDelete, onEdit, onClose }) => {
     const [isClosing, setIsClosing] = useState(false);
     const [showConfirmDelete, setShowConfirmDelete] = useState(false);
     const [showConfirmClose, setShowConfirmClose] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({
         symbol: '',
         entry_price: '',
@@ -61,63 +62,20 @@ const OrderTracker = ({ order, onDelete, onEdit, onClose }) => {
         take_profit: ''
     });
     const [priceHistory, setPriceHistory] = useState([]);
+    const [autoCloseEnabled, setAutoCloseEnabled] = useState(true);
+    const [timeRange, setTimeRange] = useState('10min'); // '10min', 'daily', 'weekly'
+    const [dailyPriceHistory, setDailyPriceHistory] = useState([]);
     
-    // Define autoCloseOrder with useCallback before using it in useEffect
-    const autoCloseOrder = useCallback(async (reason, price) => {
-        if (isClosing) return; // Prevent duplicate close calls
-        
-        // Safety check for order existence and ID
-        if (!order || !order.id) {
-            console.error("Cannot close order: Invalid order or missing ID");
-            setError("Cannot close order: Order data is invalid");
-            return;
+    // Update the chart title based on time range
+    const getChartTitle = () => {
+        switch(timeRange) {
+            case 'daily':
+                return `${order.symbol} Price (Daily)`;
+            default:
+                return `${order.symbol} Price (10-min intervals)`;
         }
-        
-        try {
-            console.log(`Attempting to close order ${order.id} with reason: ${reason}, price: ${price}`);
-            setIsClosing(true);
-            
-            const response = await axios.post(`${API_URL}/orders/${order.id}/close`, {
-                close_price: price,
-                close_reason: reason
-            });
-            
-            console.log("Close order response:", response.data);
-            
-            // Call the onClose callback to update the parent component
-            if (onClose) onClose(response.data.history);
-            
-            // Show toast notification
-            toast.success(`Order closed automatically: ${reason === 'take_profit' ? 'Take Profit' : 'Stop Loss'} reached!`);
-        } catch (error) {
-            console.error("Error auto-closing order:", error);
-            
-            // More detailed error message
-            const errorMessage = error.response?.data?.detail || error.message || "Unknown error";
-            setError(`Failed to auto-close order: ${errorMessage}`);
-            setIsClosing(false);
-            
-            // Show error toast as well
-            toast.error(`Failed to close order: ${errorMessage}`);
-        }
-    }, [isClosing, order, onClose]);
-    
-    // Add a helper function to update price history
-    const updatePriceHistory = (newPrice) => {
-        setPriceHistory(prevHistory => {
-            const newHistory = [...prevHistory, {
-                time: new Date().toLocaleTimeString(),
-                price: newPrice
-            }];
-            
-            // Keep only the most recent 20 points
-            if (newHistory.length > 20) {
-                return newHistory.slice(newHistory.length - 20);
-            }
-            return newHistory;
-        });
     };
-
+    
     // Initialize edit form when order changes
     useEffect(() => {
         if (order) {
@@ -127,403 +85,429 @@ const OrderTracker = ({ order, onDelete, onEdit, onClose }) => {
                 stop_loss: order.stop_loss,
                 take_profit: order.take_profit
             });
+            setLoading(false);
         }
     }, [order]);
     
-    // Calculate slider position for price visualization
-    const calculateSliderPosition = (price) => {
-        if (!order) return 50;
-        
-        const stopLoss = parseFloat(order.stop_loss);
-        const takeProfit = parseFloat(order.take_profit);
-        const range = takeProfit - stopLoss;
-        
-        // Calculate position as percentage between SL and TP
-        const position = ((price - stopLoss) / range) * 100;
-        return Math.min(Math.max(position, 0), 100); // Clamp between 0-100
-    };
-    
-    // Price fetching effect with auto-close logic
+    // Update the price tracking logic to use the new service
     useEffect(() => {
-        if (!order || !order.symbol) return;
+        if (!order) return;
         
-        const fetchCurrentPrice = async () => {
+        const fetchPrice = async () => {
             try {
-                const response = await axios.get(`${API_URL}/current-price/${order.symbol}`);
-                const newPrice = parseFloat(response.data.price);
+                // Use our new price service
+                const newPrice = await getCurrentPrice(order.symbol);
                 
-                if (isNaN(newPrice)) {
-                    console.error("Received invalid price:", response.data.price);
-                    setError("Received invalid price data");
-                    return;
-                }
+                // Log price updates for debugging
+                console.log(`Real price update for ${order.symbol}: ${newPrice}`);
                 
                 setCurrentPrice(newPrice);
                 
-                // Calculate profit percentage based on position type with fallback
+                // Calculate profit percentage based on position type
                 const entryPrice = parseFloat(order.entry_price);
+                const positionType = order.position_type || 'long';
                 let percent;
                 
-                if ((order.position_type || 'long') === 'short') {
-                    // For short positions, profit when price goes down
+                if (positionType === 'short') {
                     percent = ((entryPrice - newPrice) / entryPrice * 100).toFixed(2);
                 } else {
-                    // For long positions (default), profit when price goes up
                     percent = ((newPrice - entryPrice) / entryPrice * 100).toFixed(2);
                 }
                 
                 setProfitPercent(percent);
                 
-                // Add to price history
-                updatePriceHistory(newPrice);
+                // Only add to price history every 10 minutes
+                const now = new Date();
+                const minutes = now.getMinutes();
                 
-                // Check for auto-close conditions
-                const stopLoss = parseFloat(order.stop_loss);
-                const takeProfit = parseFloat(order.take_profit);
-                
-                // Only try to auto-close if not already closing and order has valid ID
-                if (order.id && !isClosing) {
-                    if (newPrice <= stopLoss) {
-                        console.log('Price hit Stop Loss - auto closing');
-                        autoCloseOrder('stop_loss', newPrice);
-                    } else if (newPrice >= takeProfit) {
-                        console.log('Price hit Take Profit - auto closing');
-                        autoCloseOrder('take_profit', newPrice);
-                    }
+                // Add to price history if it's a 10-minute mark or the first data point
+                if (minutes % 10 === 0 || priceHistory.length === 0) {
+                    const timestamp = now.toLocaleTimeString();
+                    setPriceHistory(prev => {
+                        // Check if we already have a data point for this 10-minute interval
+                        const lastTime = prev.length > 0 ? new Date(prev[prev.length - 1].time) : null;
+                        
+                        // Only add if this is a new 10-minute interval or the first point
+                        if (!lastTime || 
+                            lastTime.getHours() !== now.getHours() || 
+                            Math.floor(lastTime.getMinutes() / 10) !== Math.floor(minutes / 10)) {
+                            
+                            const updated = [...prev, { time: timestamp, price: newPrice }];
+                            return updated.slice(-24); // Keep only the last 24 points (4 hours at 10-min intervals)
+                        }
+                        return prev;
+                    });
                 }
-                
-                setLoading(false);
-            } catch (err) {
-                console.error("Error fetching current price:", err);
+            } catch (error) {
+                console.error("Error fetching price:", error);
                 setError("Failed to fetch current price");
-                setLoading(false);
             }
         };
         
-        fetchCurrentPrice();
-        const interval = setInterval(fetchCurrentPrice, 30000);
-        return () => clearInterval(interval);
-    }, [order, isClosing, autoCloseOrder]);
+        // Set up interval for price updates (every 60 seconds)
+        const intervalId = setInterval(fetchPrice, 60000);
+        
+        // Initial fetch
+        fetchPrice();
+        
+        return () => clearInterval(intervalId);
+    }, [order, priceHistory.length]);
     
-    // Track price history
+    // Add useEffect for fetching daily data
     useEffect(() => {
-        if (!order || !order.symbol || !currentPrice) return;
+        if (!order) return;
         
-        // Add the current price to our history (limited to 20 points)
-        setPriceHistory(prevHistory => {
-            const newHistory = [...prevHistory, {
-                time: new Date().toLocaleTimeString(),
-                price: parseFloat(currentPrice)
-            }];
-            
-            // Keep only the most recent 20 points
-            if (newHistory.length > 20) {
-                return newHistory.slice(newHistory.length - 20);
+        const fetchDailyPrices = async () => {
+            try {
+                // Import the function from priceService
+                const { getDailyPrices } = await import('../services/priceService');
+                const dailyData = await getDailyPrices(order.symbol, 30); // Get 30 days of data
+                
+                setDailyPriceHistory(dailyData);
+            } catch (error) {
+                console.error("Error fetching daily prices:", error);
             }
-            return newHistory;
-        });
-    }, [currentPrice, order]);
-    
-    // Check if price is at SL or TP
-    const isPriceAtStopOrTarget = () => {
-        if (!currentPrice) return false;
+        };
         
-        const price = parseFloat(currentPrice);
-        const stopLoss = parseFloat(order.stop_loss);
-        const takeProfit = parseFloat(order.take_profit);
-        
-        // Add some tolerance (0.5%) for price comparison
-        return (price <= stopLoss * 1.005) || (price >= takeProfit * 0.995);
-    };
+        // Fetch daily data when the component mounts or order changes
+        fetchDailyPrices();
+    }, [order]);
     
-    const handleEditClick = () => {
-        setIsEditing(true);
-    };
-    
-    const handleCancelEdit = () => {
-        setIsEditing(false);
-        // Reset form to original values
-        setEditForm({
-            symbol: order.symbol,
-            entry_price: order.entry_price,
-            stop_loss: order.stop_loss,
-            take_profit: order.take_profit
-        });
-    };
-    
-    const handleEditChange = (e) => {
-        const { name, value } = e.target;
-        setEditForm({
-            ...editForm,
-            [name]: value
-        });
-    };
-    
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            // Validate prices
-            const entry = parseFloat(editForm.entry_price);
-            const sl = parseFloat(editForm.stop_loss);
-            const tp = parseFloat(editForm.take_profit);
-            
-            if (entry <= sl) {
-                setError('Stop Loss must be lower than Entry Price');
-                return;
-            }
-            
-            if (entry >= tp) {
-                setError('Take Profit must be higher than Entry Price');
-                return;
-            }
-            
-            const response = await axios.put(`${API_URL}/orders/${order.id}`, {
-                symbol: editForm.symbol.toUpperCase(),
-                entry_price: parseFloat(editForm.entry_price),
-                stop_loss: parseFloat(editForm.stop_loss),
-                take_profit: parseFloat(editForm.take_profit)
-            });
-            
-            setIsEditing(false);
-            
-            // Call the onEdit callback to update the parent component
-            if (onEdit) onEdit(response.data.order);
-            
-            // Show success message
-            toast.success("Order updated successfully!");
-        } catch (error) {
-            console.error("Error updating order:", error);
-            setError(error.response?.data?.detail || "Failed to update order");
-        }
-    };
-    
-    const handleDeleteClick = () => {
-        if (!showConfirmDelete) {
-            setShowConfirmDelete(true);
-            return;
-        }
-        
-        setIsDeleting(true);
-        onDelete(order.id);
-    };
-    
-    const handleCancelDelete = () => {
-        setShowConfirmDelete(false);
-    };
-    
-    const handleCloseClick = () => {
-        if (!showConfirmClose) {
-            setShowConfirmClose(true);
-            return;
-        }
-    };
-    
-    const handleConfirmClose = async () => {
-        try {
-            setIsClosing(true);
-            console.log(`Manually closing order: ${order.id} at price: ${currentPrice}`);
-            
-            // First try to close with current price
-            const response = await axios.post(`${API_URL}/orders/${order.id}/close`, {
-                close_price: currentPrice,
-                close_reason: 'manual'
-            });
-            
-            // Show success notification
-            toast.success("Order closed successfully!");
-            
-            // Call onClose to update parent component
-            if (onClose) {
-                onClose(response.data.history);
-            }
-        } catch (error) {
-            console.error("Error closing order:", error);
-            
-            // Create a detailed error message
-            const errorDetails = error.response?.data?.detail || error.message || "Unknown error";
-            setError(`Failed to close order: ${errorDetails}`);
-            
-            // Show error notification
-            toast.error(`Close failed: ${errorDetails}`);
-            
-            // Reset the closing state
-            setIsClosing(false);
-        }
-    };
-    
-    const handleCancelClose = () => {
-        setShowConfirmClose(false);
-    };
-    
-    // Create chart data for Chart.js
+    // Prepare chart data with entry price line
     const prepareChartData = () => {
-        if (!priceHistory.length || !order) {
-            // Return empty chart data
-            return {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Price',
-                        data: [],
-                        borderColor: '#00dac6',
-                        fill: false
-                    }
-                ]
-            };
-        }
+        // Use the appropriate price history based on time range
+        const historyData = timeRange === '10min' ? priceHistory : dailyPriceHistory;
         
+        const labels = historyData.map(item => 
+            timeRange === '10min' ? item.time : item.date
+        );
+        const prices = historyData.map(item => item.price);
+        
+        // Calculate appropriate min and max for y-axis - we'll use these in the chart options
+        // const minPrice = Math.min(...prices) * 0.995; // 0.5% below minimum
+        // const maxPrice = Math.max(...prices) * 1.005; // 0.5% above maximum
+        
+        // Make sure entry price, stop loss, and take profit are within the visible range
         const entryPrice = parseFloat(order.entry_price);
         const stopLoss = parseFloat(order.stop_loss);
         const takeProfit = parseFloat(order.take_profit);
         
+        // Create a dataset for the price line
         return {
-            labels: priceHistory.map(p => p.time),
+            labels,
             datasets: [
                 {
                     label: 'Price',
-                    data: priceHistory.map(p => p.price),
-                    borderColor: profitPercent >= 0 ? '#4caf50' : '#f44336',
-                    backgroundColor: profitPercent >= 0 
-                        ? 'rgba(76, 175, 80, 0.1)' 
-                        : 'rgba(244, 67, 54, 0.1)',
-                    tension: 0.3,
-                    fill: true
+                    data: prices,
+                    borderColor: '#00dac6',
+                    backgroundColor: 'rgba(0, 218, 198, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#00dac6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1,
                 },
                 {
                     label: 'Entry Price',
-                    data: Array(priceHistory.length).fill(entryPrice),
-                    borderColor: '#888',
+                    data: Array(labels.length).fill(entryPrice),
+                    borderColor: '#ffffff',
                     borderWidth: 2,
                     borderDash: [5, 5],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    tension: 0
                 },
                 {
                     label: 'Stop Loss',
-                    data: Array(priceHistory.length).fill(stopLoss),
+                    data: Array(labels.length).fill(stopLoss),
                     borderColor: '#f44336',
                     borderWidth: 2,
-                    borderDash: [3, 3],
+                    borderDash: [5, 5],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    tension: 0
                 },
                 {
                     label: 'Take Profit',
-                    data: Array(priceHistory.length).fill(takeProfit),
+                    data: Array(labels.length).fill(takeProfit),
                     borderColor: '#4caf50',
                     borderWidth: 2,
-                    borderDash: [3, 3],
+                    borderDash: [5, 5],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    tension: 0
                 }
             ]
         };
     };
-
-    // ChartJS options
+    
+    // Update chart options for better Y-axis scaling
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        scales: {
-            y: {
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                },
-                ticks: {
-                    color: '#ccc'
-                }
-            },
-            x: {
-                grid: {
-                    display: false
-                },
-                ticks: {
-                    color: '#ccc',
-                    maxRotation: 0,
-                    autoSkip: true,
-                    maxTicksLimit: 5
-                }
-            }
-        },
         plugins: {
             legend: {
+                display: true,
                 position: 'top',
                 labels: {
-                    color: '#ccc',
-                    boxWidth: 12
+                    color: '#fff',
+                    boxWidth: 12,
+                    padding: 10,
+                    font: {
+                        size: 11
+                    }
                 }
             },
             tooltip: {
                 mode: 'index',
                 intersect: false,
-                backgroundColor: 'rgba(30, 27, 46, 0.9)',
-                titleColor: '#fff',
-                bodyColor: '#ddd'
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD',
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            }).format(context.parsed.y);
+                        }
+                        return label;
+                    }
+                }
+            },
+            title: {
+                display: true,
+                text: getChartTitle(),
+                color: '#fff',
+                font: {
+                    size: 16
+                }
             }
         },
+        scales: {
+            x: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#888',
+                    maxRotation: 45,
+                    minRotation: 45,
+                    autoSkip: true,
+                    maxTicksLimit: 8
+                }
+            },
+            y: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#888',
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                },
+                // Set the min and max based on the price range
+                afterDataLimits: (scale) => {
+                    // Get the entry, SL, and TP prices
+                    const entryPrice = parseFloat(order.entry_price);
+                    const stopLoss = parseFloat(order.stop_loss);
+                    const takeProfit = parseFloat(order.take_profit);
+                    
+                    // Find the min and max of all relevant prices
+                    const historyData = timeRange === '10min' ? priceHistory : dailyPriceHistory;
+                    const allPrices = [...historyData.map(item => item.price), entryPrice, stopLoss, takeProfit];
+                    const minPrice = Math.min(...allPrices);
+                    const maxPrice = Math.max(...allPrices);
+                    
+                    // Calculate a good range (add padding)
+                    const range = maxPrice - minPrice;
+                    const padding = range * 0.1; // 10% padding
+                    
+                    scale.min = minPrice - padding;
+                    scale.max = maxPrice + padding;
+                }
+            }
+        },
+        elements: {
+            point: {
+                radius: 2,
+                hoverRadius: 5
+            },
+            line: {
+                tension: 0.4
+            }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+        },
         animation: {
-            duration: 500
+            duration: 1000
         }
     };
-
+    
+    // Add time range selector UI
+    const TimeRangeSelector = () => (
+        <div className="time-range-selector">
+            <button 
+                className={`range-btn ${timeRange === '10min' ? 'active' : ''}`}
+                onClick={() => setTimeRange('10min')}
+            >
+                10 Min
+            </button>
+            <button 
+                className={`range-btn ${timeRange === 'daily' ? 'active' : ''}`}
+                onClick={() => setTimeRange('daily')}
+            >
+                Daily
+            </button>
+        </div>
+    );
+    
+    // Handle delete button click
+    const handleDeleteClick = () => {
+        if (showConfirmDelete) {
+            // User confirmed deletion
+            setIsDeleting(true);
+            
+            // Call the onDelete callback
+            if (onDelete) {
+                onDelete(order.id);
+            }
+        } else {
+            // Show confirmation first
+            setShowConfirmDelete(true);
+        }
+    };
+    
+    // Handle cancel delete
+    const handleCancelDelete = () => {
+        setShowConfirmDelete(false);
+    };
+    
+    // Handle edit button click
+    const handleEditClick = () => {
+        if (onEdit) {
+            onEdit(order.id, editForm);
+        }
+    };
+    
+    // Handle close button click
+    const handleCloseClick = () => {
+        setShowConfirmClose(true);
+    };
+    
+    // Handle confirm close
+    const handleConfirmClose = async () => {
+        setIsClosing(true);
+        
+        try {
+            // Prepare close data
+            const closeData = {
+                close_reason: 'manual',
+                close_price: currentPrice
+            };
+            
+            // Send close request to API
+            await axios.post(`${API_URL}/orders/${order.id}/close`, closeData);
+            
+            toast.success('Order closed successfully');
+            
+            // Notify parent component
+            if (onClose) {
+                onClose();
+            }
+        } catch (error) {
+            console.error('Error closing order:', error);
+            toast.error('Failed to close order');
+            setIsClosing(false);
+            setShowConfirmClose(false);
+        }
+    };
+    
+    // Handle cancel close
+    const handleCancelClose = () => {
+        setShowConfirmClose(false);
+    };
+    
+    // Toggle auto-close
+    const toggleAutoClose = () => {
+        setAutoCloseEnabled(prev => !prev);
+        
+        // Show a toast message explaining that auto-close is disabled
+        if (!autoCloseEnabled) {
+            toast.info("Auto-close is currently disabled in this version");
+        }
+    };
+    
+    // Check if price is at stop loss or take profit
+    const isPriceAtStopOrTarget = () => {
+        if (!currentPrice) return false;
+        
+        const stopLoss = parseFloat(order.stop_loss);
+        const takeProfit = parseFloat(order.take_profit);
+        const positionType = order.position_type || 'long';
+        
+        if (positionType === 'long') {
+            return currentPrice <= stopLoss || currentPrice >= takeProfit;
+        } else {
+            return currentPrice >= stopLoss || currentPrice <= takeProfit;
+        }
+    };
+    
     // Render the component
     return (
         <div className="order-tracker">
-            {error && (
-                <div className="error-message">
-                    <div className="error-icon">⚠️</div>
-                    <div className="error-text">
-                        <strong>Error:</strong> {error}
-                        {error.includes("Failed to close order") && (
-                            <div className="error-help">
-                                <p>Try these steps:</p>
-                                <ol>
-                                    <li>Refresh the page and try again</li>
-                                    <li>Check if the database connection is working</li>
-                                    <li>Verify that the order_history table exists in your database</li>
-                                </ol>
-                            </div>
-                        )}
-                    </div>
-                    <button 
-                        className="error-dismiss" 
-                        onClick={() => setError(null)}
-                    >
-                        ×
-                    </button>
-                </div>
-            )}
-            
             {loading ? (
                 <div className="loading-container">
                     <div className="loading-spinner"></div>
                     <p>Loading order data...</p>
                 </div>
+            ) : error ? (
+                <div className="error-message">
+                    <div className="error-icon">⚠️</div>
+                    <div className="error-text">{error}</div>
+                    <button className="error-dismiss" onClick={() => setError(null)}>×</button>
+                </div>
             ) : (
                 <>
                     <div className="tracker-header">
                         <div className="tracker-title">
-                            <img 
-                                src={cryptoLogos[order.symbol] || 'https://via.placeholder.com/32'} 
-                                alt={order.symbol}
-                                className="crypto-logo"
-                            />
+                            {cryptoLogos[order.symbol] && (
+                                <img 
+                                    src={cryptoLogos[order.symbol]} 
+                                    alt={`${order.symbol} logo`} 
+                                    className="crypto-logo" 
+                                />
+                            )}
                             <h2>{order.symbol}</h2>
-                            <span className={`position-badge ${(order.position_type || 'long') === 'short' ? 'short' : 'long'}`}>
-                                {(order.position_type || 'long').toUpperCase()}
-                            </span>
+                            <div className={`position-badge ${order.position_type || 'long'}`}>
+                                {order.position_type || 'LONG'}
+                            </div>
                         </div>
-                        <div className={`profit-percent ${profitPercent >= 0 ? 'positive' : 'negative'}`}>
-                            {profitPercent >= 0 ? '+' : ''} {profitPercent}%
-                        </div>
+                        
+                        {currentPrice && (
+                            <div className={`profit-percent ${parseFloat(profitPercent) >= 0 ? 'positive' : 'negative'}`}>
+                                {profitPercent}%
+                            </div>
+                        )}
                     </div>
                     
                     <div className="tracker-meta">
                         <div className="timestamp">
-                            Created: {new Date(order.created_at).toLocaleString()}
+                            Opened: {new Date(order.created_at).toLocaleString()}
                         </div>
+                        
                         <div className="tracker-actions">
-                            {!isPriceAtStopOrTarget() && (
+                            {order.status === 'open' && (
                                 <>
                                     <button className="edit-btn" onClick={handleEditClick}>
                                         Edit Order
@@ -588,82 +572,86 @@ const OrderTracker = ({ order, onDelete, onEdit, onClose }) => {
                         </div>
                     </div>
                     
-                    <div className="price-points">
-                        <div className={`price-point ${parseFloat(order.stop_loss) / currentPrice > 0.95 ? 'alert' : ''}`}>
-                            <div className="price-icon stop-loss-icon">
-                                <i className={`fa fa-arrow-${(order.position_type || 'long') === 'short' ? 'up' : 'down'}`}></i>
-                            </div>
-                            <div className="price-value">{parseFloat(order.stop_loss).toFixed(2)}</div>
-                            <div className="price-label">Stop Loss</div>
-                            {parseFloat(order.stop_loss) / currentPrice > 0.95 && <div className="alert-badge">Near!</div>}
-                        </div>
-                        
-                        <div className="price-point">
-                            <div className="price-icon entry-icon">
-                                <i className="fa fa-sign-in-alt"></i>
-                            </div>
-                            <div className="price-value">{parseFloat(order.entry_price).toFixed(2)}</div>
-                            <div className="price-label">Entry Price</div>
-                        </div>
-                        
-                        <div className="price-point highlight">
-                            <div className="price-icon current-icon">
-                                <i className="fa fa-dot-circle"></i>
-                            </div>
-                            <div className="price-value">{currentPrice.toFixed(2)}</div>
-                            <div className="price-label">Current Price</div>
-                        </div>
-                        
-                        <div className={`price-point ${currentPrice / parseFloat(order.take_profit) > 0.95 ? 'alert' : ''}`}>
-                            <div className="price-icon take-profit-icon">
-                                <i className={`fa fa-arrow-${(order.position_type || 'long') === 'short' ? 'down' : 'up'}`}></i>
-                            </div>
-                            <div className="price-value">{parseFloat(order.take_profit).toFixed(2)}</div>
-                            <div className="price-label">Take Profit</div>
-                            {currentPrice / parseFloat(order.take_profit) > 0.95 && <div className="alert-badge">Near!</div>}
-                        </div>
+                    <div className="auto-close-toggle">
+                        <label className="toggle-label">
+                            <input 
+                                type="checkbox" 
+                                checked={autoCloseEnabled} 
+                                onChange={toggleAutoClose} 
+                            />
+                            <span className="toggle-text">Auto-close at SL/TP</span>
+                        </label>
                     </div>
                     
-                    {/* Chart.js Price Chart */}
-                    <div className="price-chart-container">
-                        <h3>Price Movement</h3>
-                        {priceHistory.length > 1 ? (
-                            <div className="chart-wrapper">
-                                <Line data={prepareChartData()} options={chartOptions} height={220} />
+                    {currentPrice && (
+                        <>
+                            <div className="price-points">
+                                <div className="price-point">
+                                    <div className="price-icon stop-loss-icon">
+                                        <i className={`fa fa-arrow-${(order.position_type || 'long') === 'short' ? 'up' : 'down'}`}></i>
+                                    </div>
+                                    <div className="price-value">{parseFloat(order.stop_loss).toFixed(2)}</div>
+                                    <div className="price-label">Stop Loss</div>
+                                </div>
+                                
+                                <div className="price-point">
+                                    <div className="price-icon entry-icon">
+                                        <i className="fa fa-sign-in-alt"></i>
+                                    </div>
+                                    <div className="price-value">{parseFloat(order.entry_price).toFixed(2)}</div>
+                                    <div className="price-label">Entry Price</div>
+                                </div>
+                                
+                                <div className="price-point highlight">
+                                    <div className="price-icon current-icon">
+                                        <i className="fa fa-dot-circle"></i>
+                                    </div>
+                                    <div className="price-value">{currentPrice.toFixed(2)}</div>
+                                    <div className="price-label">Current Price</div>
+                                </div>
+                                
+                                <div className="price-point">
+                                    <div className="price-icon take-profit-icon">
+                                        <i className={`fa fa-arrow-${(order.position_type || 'long') === 'short' ? 'down' : 'up'}`}></i>
+                                    </div>
+                                    <div className="price-value">{parseFloat(order.take_profit).toFixed(2)}</div>
+                                    <div className="price-label">Take Profit</div>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="chart-loading">
-                                Collecting price data...
+                            
+                            <SimplePriceTracker 
+                                currentPrice={currentPrice}
+                                entryPrice={parseFloat(order.entry_price)}
+                                stopLoss={parseFloat(order.stop_loss)}
+                                takeProfit={parseFloat(order.take_profit)}
+                                positionType={order.position_type || 'long'}
+                            />
+                            
+                            {/* Chart.js Price Chart */}
+                            <div className="price-chart-container">
+                                <h3>Price Movement</h3>
+                                
+                                <TimeRangeSelector />
+                                
+                                {(timeRange === '10min' && priceHistory.length > 1) || 
+                                 (timeRange === 'daily' && dailyPriceHistory.length > 1) ? (
+                                    <div className="chart-wrapper">
+                                        <Line data={prepareChartData()} options={chartOptions} height={220} />
+                                    </div>
+                                ) : (
+                                    <div className="chart-loading">
+                                        {timeRange === '10min' 
+                                            ? 'Collecting 10-minute price data...' 
+                                            : 'Loading daily price data...'}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                    
-                    <div className="price-analysis">
-                        {profitPercent >= 0 ? (
-                            <p className="analysis-text positive">
-                                <i className="fa fa-chart-line"></i>
-                                {(order.position_type || 'long') === 'short' 
-                                    ? `The price is ${Math.abs(profitPercent)}% lower than your entry price.`
-                                    : `The price is ${Math.abs(profitPercent)}% higher than your entry price.`
-                                }
-                            </p>
-                        ) : (
-                            <p className="analysis-text negative">
-                                <i className="fa fa-chart-line"></i>
-                                {(order.position_type || 'long') === 'short' 
-                                    ? `The price is ${Math.abs(profitPercent)}% higher than your entry price.`
-                                    : `The price is ${Math.abs(profitPercent)}% lower than your entry price.`
-                                }
-                            </p>
-                        )}
-                    </div>
+                        </>
+                    )}
                 </>
             )}
         </div>
     );
 };
-
-// Fix ESLint warning by defining autoCloseOrder outside of component
-OrderTracker.displayName = "OrderTracker";
 
 export default OrderTracker; 

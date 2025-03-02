@@ -11,6 +11,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import config from './config';
 import { Toaster } from 'react-hot-toast';
+import Footer from './components/Footer';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -94,6 +95,7 @@ function App() {
             <Route path="/env-test" element={<EnvTest />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          <Footer />
         </div>
       </Router>
       <Toaster position="top-right" />

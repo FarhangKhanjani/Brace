@@ -727,4 +727,34 @@
 
 .short .take-profit-icon i {
     color: #f44336;
+}
+
+/* Add styles for the time range selector */
+.time-range-selector {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.range-btn {
+    background-color: #2c2c2c;
+    color: #888;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.range-btn:hover {
+    background-color: #3c3c3c;
+    color: #fff;
+}
+
+.range-btn.active {
+    background-color: #00dac6;
+    color: #1a1825;
+    font-weight: bold;
 } 
