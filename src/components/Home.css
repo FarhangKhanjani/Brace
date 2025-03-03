@@ -39,6 +39,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(0, 218, 198, 0.3);
+  text-decoration: none;
 }
 
 .get-started-btn:hover {
@@ -71,7 +72,7 @@
 
 .crypto-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
 }
 
@@ -97,15 +98,16 @@
 }
 
 .crypto-icon {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   margin-right: 1rem;
   border-radius: 50%;
   background-color: #2a2740;
-  padding: 5px;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  filter: drop-shadow(0 0 8px rgba(0, 218, 198, 0.3));
 }
 
 .crypto-icon img {
@@ -160,7 +162,36 @@
   font-weight: 500;
 }
 
+.loading-indicator {
+  text-align: center;
+  padding: 2rem;
+  color: #aaa;
+  font-style: italic;
+  grid-column: 1 / -1;
+}
+
+.error-message {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
 /* Responsive adjustments */
+@media (max-width: 1200px) {
+  .crypto-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .crypto-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .home-container {
     padding: 1rem;
@@ -168,10 +199,6 @@
   
   .hero-section {
     padding: 2rem 1rem;
-  }
-  
-  .crypto-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 }
 

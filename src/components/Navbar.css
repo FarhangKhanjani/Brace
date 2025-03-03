@@ -63,10 +63,11 @@
 .login-btn {
   background-color: #00DAC6 !important;
   color: #1a1825 !important;
-  padding: 0.5rem 1.2rem !important;
+  padding: 0.4rem 1rem !important;
   border-radius: 50px !important;
   font-weight: bold !important;
   transition: all 0.3s ease !important;
+  font-size: 0.9rem !important;
 }
 
 .login-btn:hover {

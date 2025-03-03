@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import './Navbar.css';
-import { FaBitcoin } from 'react-icons/fa';
-import { HiMenu, HiX } from 'react-icons/hi';
+import { 
+    BsCurrencyBitcoin, 
+    BsList, 
+    BsX 
+} from 'react-icons/bs';
 
 const Navbar = ({ session, onLogout }) => {
     const navigate = useNavigate();
@@ -26,7 +29,7 @@ const Navbar = ({ session, onLogout }) => {
         <>
             <nav className="navbar">
                 <Link to="/" className="logo" onClick={closeMobileMenu}>
-                    <FaBitcoin className="logo-icon" />
+                    <BsCurrencyBitcoin className="logo-icon" />
                     CryptoCap
                 </Link>
                 
@@ -43,14 +46,14 @@ const Navbar = ({ session, onLogout }) => {
                 </div>
                 
                 <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
-                    <HiMenu />
+                    <BsList />
                 </button>
             </nav>
             
             {/* Mobile Menu */}
             <div className={`mobile-menu ${mobileMenuOpen ? 'active' : ''}`}>
                 <button className="close-menu-btn" onClick={toggleMobileMenu}>
-                    <HiX />
+                    <BsX />
                 </button>
                 
                 <div className="nav-links">

@@ -1,7 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
-import { FaBitcoin, FaTwitter, FaGithub, FaLinkedin } from 'react-icons/fa';
+import { 
+    BsCurrencyBitcoin, 
+    BsGithub, 
+    BsLinkedin, 
+    BsYoutube 
+} from 'react-icons/bs';
+import { SiX } from 'react-icons/si';
 
 const Footer = () => {
     return (
@@ -9,7 +15,7 @@ const Footer = () => {
             <div className="footer-container">
                 <div className="footer-section">
                     <Link to="/" className="footer-logo">
-                        <FaBitcoin className="footer-logo-icon" />
+                        <BsCurrencyBitcoin className="footer-logo-icon" />
                         CryptoCap
                     </Link>
                     <p className="footer-description">
@@ -40,9 +46,18 @@ const Footer = () => {
                 <div className="footer-section">
                     <h3>Connect With Us</h3>
                     <div className="social-links">
-                        <a href="#" aria-label="Twitter"><FaTwitter /></a>
-                        <a href="#" aria-label="GitHub"><FaGithub /></a>
-                        <a href="#" aria-label="LinkedIn"><FaLinkedin /></a>
+                        <a href="https://x.com/ghaderazim47075" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
+                            <SiX />
+                        </a>
+                        <a href="https://github.com/FarhangKhanjani/Brace" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                            <BsGithub />
+                        </a>
+                        <a href="https://www.linkedin.com/in/farhang-khanjani/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                            <BsLinkedin />
+                        </a>
+                        <a href="https://www.youtube.com/@fercoding" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+                            <BsYoutube />
+                        </a>
                     </div>
                 </div>
             </div>
