@@ -167,4 +167,24 @@
   margin-left: 10px;
   color: #888;
   font-style: italic;
+}
+
+/* Responsive form */
+@media (max-width: 768px) {
+  .order-form {
+    padding: 1rem;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
 } 

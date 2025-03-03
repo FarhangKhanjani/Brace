@@ -9,68 +9,79 @@ import OrderTracker from './OrderTracker';
 import OrderHistory from './OrderHistory';
 import { toast } from 'react-toastify';
 import config from '../config';
+import ProfileSection from './ProfileSection';
+import BlogSection from './BlogSection';
 
 const API_URL = config.API_URL;
 
-function Dashboard() {
+const Dashboard = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
     const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [showOrderForm, setShowOrderForm] = useState(false);
+    const [showOrderTracker, setShowOrderTracker] = useState(false);
+    const [user, setUser] = useState(null);
+    const [userLoaded, setUserLoaded] = useState(false);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState('');
-    const [showOrderForm, setShowOrderForm] = useState(false);
-    const [showProfileModal, setShowProfileModal] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState(null);
     const [activeTab, setActiveTab] = useState('orders');
-    const [loading, setLoading] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
 
-    // Define fetchOrders before using it
-    const fetchOrders = useCallback(async () => {
-        if (!user) return;
-        
-        try {
-            setLoading(true);
-            const response = await axios.get(`${API_URL}/orders/${user.id}`);
-            
-            if (response.data && response.data.orders) {
-                // Create a Map with order IDs as keys to prevent duplicates
-                const orderMap = new Map();
-                response.data.orders.forEach(order => {
-                    orderMap.set(order.id, order);
-                });
+    useEffect(() => {
+        // Get the current user
+        const getCurrentUser = async () => {
+            try {
+                const { data, error } = await supabase.auth.getUser();
                 
-                // Convert Map back to array
-                const uniqueOrders = Array.from(orderMap.values());
-                setOrders(uniqueOrders);
+                if (error) {
+                    throw error;
+                }
+                
+                if (data && data.user) {
+                    setUser(data.user);
+                }
+            } catch (error) {
+                console.error('Error getting user:', error);
+                toast.error('Failed to get user information');
+            } finally {
+                setUserLoaded(true);
             }
-        } catch (error) {
-            console.error("Error fetching orders:", error);
-            setError("Failed to load orders");
-        } finally {
-            setLoading(false);
-        }
-    }, [user]);
+        };
+        
+        getCurrentUser();
+    }, []);
 
-    // Get user and orders
     useEffect(() => {
-        // Check if user is authenticated
-        supabase.auth.getUser().then(({ data, error }) => {
-            if (error || !data.user) {
-                navigate('/login');
-                return;
-            }
-            
-            // Set basic user info
-            setUser(data.user);
-        });
-    }, [navigate]);
-
-    // Fetch orders when user changes
-    useEffect(() => {
+        // Only fetch orders if we have a user
         if (user) {
             fetchOrders();
         }
-    }, [user, fetchOrders]);
+    }, [user]);
+
+    const fetchOrders = async () => {
+        try {
+            setLoading(true);
+            
+            // Fetch orders from your API or database
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+                
+            if (error) {
+                throw error;
+            }
+            
+            setOrders(data || []);
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            toast.error('Failed to load orders');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Handle order submission
     const handleOrderSubmit = async (orderData) => {
@@ -182,6 +193,29 @@ function Dashboard() {
         }
     };
 
+    // If user data is still loading, show a loading indicator
+    if (!userLoaded) {
+        return (
+            <div className="dashboard-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading dashboard...</p>
+            </div>
+        );
+    }
+
+    // If no user is found after loading, handle this case
+    if (!user) {
+        return (
+            <div className="dashboard-error">
+                <h2>Authentication Error</h2>
+                <p>Unable to load user data. Please try logging in again.</p>
+                <button onClick={() => window.location.href = '/login'}>
+                    Go to Login
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="dashboard">
             <header className="dashboard-header">
@@ -284,9 +318,14 @@ function Dashboard() {
                     onClose={() => setShowProfileModal(false)} 
                 />
             )}
+
+            <div className="profile-blog-container">
+                <ProfileSection userId={user.id} />
+                <BlogSection userId={user.id} isCurrentUser={true} />
+            </div>
         </div>
     );
-}
+};
 
 const OrderCard = ({ order, onClick, isSelected }) => {
     // Extract date from ISO string

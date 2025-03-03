@@ -1,22 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
-import config from './config';
 
-// Use values from config instead of direct env variables
-const supabaseUrl = config.SUPABASE_URL;
-const supabaseKey = config.SUPABASE_KEY;
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_KEY;
 
-// Add more detailed logging
-console.log('Environment check:', {
-    hasSupabaseUrl: !!supabaseUrl,
-    hasSupabaseKey: !!supabaseKey,
-    nodeEnv: process.env.NODE_ENV
-});
-
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
+// Add some debug logging
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase credentials are missing!', { 
+        url: supabaseUrl ? 'Set' : 'Missing', 
+        key: supabaseAnonKey ? 'Set' : 'Missing' 
+    });
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Add a listener for auth state changes
+supabase.auth.onAuthStateChange((event, session) => {
+    console.log('Auth state changed:', event, session ? 'User is logged in' : 'No user');
+});
 
 // Test the connection
 supabase.auth.getSession().then(({ data, error }) => {

@@ -1,37 +1,54 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Footer.css';
+import { FaBitcoin, FaTwitter, FaGithub, FaLinkedin } from 'react-icons/fa';
 
 const Footer = () => {
-    const currentYear = new Date().getFullYear();
-    
     return (
         <footer className="footer">
-            <div className="footer-content">
+            <div className="footer-container">
                 <div className="footer-section">
-                    <h3>CryptoCap</h3>
-                    <p>Track and manage your cryptocurrency portfolio with ease.</p>
+                    <Link to="/" className="footer-logo">
+                        <FaBitcoin className="footer-logo-icon" />
+                        CryptoCap
+                    </Link>
+                    <p className="footer-description">
+                        Track, analyze, and optimize your cryptocurrency investments with our powerful tools.
+                    </p>
                 </div>
                 
                 <div className="footer-section">
                     <h3>Quick Links</h3>
-                    <ul>
-                        <li><a href="/">Home</a></li>
-                        <li><a href="/dashboard">Dashboard</a></li>
-                        <li><a href="/login">Login</a></li>
-                        <li><a href="/register">Register</a></li>
+                    <ul className="footer-links">
+                        <li><Link to="/">Home</Link></li>
+                        <li><Link to="/dashboard">Dashboard</Link></li>
+                        <li><Link to="/login">Login</Link></li>
+                        <li><Link to="/signup">Sign Up</Link></li>
                     </ul>
                 </div>
                 
                 <div className="footer-section">
-                    <h3>Contact</h3>
-                    <p>Email: info@cryptocap.com</p>
-                    <p>Support: support@cryptocap.com</p>
+                    <h3>Resources</h3>
+                    <ul className="footer-links">
+                        <li><a href="#">API Documentation</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+                
+                <div className="footer-section">
+                    <h3>Connect With Us</h3>
+                    <div className="social-links">
+                        <a href="#" aria-label="Twitter"><FaTwitter /></a>
+                        <a href="#" aria-label="GitHub"><FaGithub /></a>
+                        <a href="#" aria-label="LinkedIn"><FaLinkedin /></a>
+                    </div>
                 </div>
             </div>
             
             <div className="footer-bottom">
-                <p>&copy; {currentYear} CryptoCap. All rights reserved.</p>
-                <p>Designed with ❤️ by <span className="highlight">Farhang</span> and <span className="highlight">Cursor</span></p>
+                <p>&copy; {new Date().getFullYear()} CryptoCap. All rights reserved.</p>
             </div>
         </footer>
     );

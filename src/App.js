@@ -12,6 +12,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import config from './config';
 import { Toaster } from 'react-hot-toast';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
+import ResetPassword from './components/ResetPassword';
+import { startActivityMonitoring } from './utils/sessionManager';
+import Navbar from './components/Navbar';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -37,6 +41,14 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    // Start monitoring user activity when the app loads
+    const cleanup = startActivityMonitoring();
+    
+    // Clean up when the component unmounts
+    return cleanup;
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSession(null);
@@ -60,23 +72,10 @@ function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
       <Router>
         <div className="app">
-          <nav className="navbar">
-            <div className="logo">CryptoCap</div>
-            <div className="nav-links">
-              <Link to="/">Home</Link>
-              {session ? (
-                <>
-                  <Link to="/dashboard">Dashboard</Link>
-                  <button onClick={handleLogout}>Logout</button>
-                </>
-              ) : (
-                <Link to="/login" className="login-btn">Login</Link>
-              )}
-            </div>
-          </nav>
+          <Navbar session={session} onLogout={handleLogout} />
 
           <Routes>
             <Route path="/" element={<Home />} />
@@ -93,6 +92,7 @@ function App() {
               element={session ? <Dashboard /> : <Navigate to="/login" />} 
             />
             <Route path="/env-test" element={<EnvTest />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
           <Footer />
@@ -100,7 +100,7 @@ function App() {
       </Router>
       <Toaster position="top-right" />
       <ToastContainer />
-    </>
+    </ErrorBoundary>
   );
 }
 

@@ -41,6 +41,8 @@
   min-height: 100vh;
   background-color: #13111c;
   color: #fff;
+  display: flex;
+  flex-direction: column;
 }
 
 .navbar {
@@ -150,4 +152,123 @@
 
 .logout-btn:hover {
   background-color: #ff2222;
+}
+
+/* Responsive navigation */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  
+  .logo {
+    margin-bottom: 1rem;
+  }
+  
+  .nav-links {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+  }
+  
+  .nav-links a, .nav-links button {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Add more space on smaller screens */
+@media (max-width: 576px) {
+  .app {
+    padding-bottom: 60px; /* Extra space for footer */
+  }
+  
+  .container {
+    padding: 1rem;
+  }
+}
+
+/* Responsive images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Touch-friendly elements */
+button, a, input[type="submit"], input[type="button"] {
+  min-height: 44px; /* Apple's recommended minimum touch target size */
+  min-width: 44px;
+}
+
+/* Increase spacing for touch targets */
+.touch-friendly li, .touch-friendly button {
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+/* Main content should grow to push footer down */
+.app > *:not(.navbar):not(.footer) {
+  flex: 1;
+}
+
+/* Footer should stay at the bottom */
+.footer {
+  margin-top: auto;
+}
+
+/* Improve spacing on mobile */
+@media (max-width: 576px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .navbar {
+    padding: 0.8rem 1rem;
+  }
+  
+  .logo {
+    font-size: 1.2rem;
+  }
+  
+  .nav-links a, .nav-links button {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Ensure content doesn't overflow on small screens */
+img, video, canvas, svg, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+  button, 
+  .button, 
+  a.button, 
+  input[type="button"], 
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .nav-links {
+    gap: 0.5rem;
+  }
+}
+
+/* Add a bit more breathing room at the bottom on mobile */
+@media (max-width: 576px) {
+  .app {
+    padding-bottom: 20px;
+  }
 }

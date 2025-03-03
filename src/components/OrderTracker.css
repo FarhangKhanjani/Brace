@@ -757,4 +757,54 @@
     background-color: #00dac6;
     color: #1a1825;
     font-weight: bold;
+}
+
+/* Responsive order tracker */
+@media (max-width: 768px) {
+  .order-tracker {
+    padding: 15px;
+  }
+  
+  .tracker-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .tracker-actions {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .price-points {
+    flex-direction: column;
+  }
+  
+  .price-point {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .chart-wrapper {
+    height: 200px;
+  }
+}
+
+@media (max-width: 576px) {
+  .order-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-item {
+    padding: 0.5rem;
+  }
+  
+  .time-range-selector {
+    flex-wrap: wrap;
+  }
+  
+  .range-btn {
+    margin-bottom: 0.5rem;
+  }
 } 

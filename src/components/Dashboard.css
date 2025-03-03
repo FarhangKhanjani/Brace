@@ -640,3 +640,125 @@ select {
     color: #888;
     font-style: italic;
 }
+
+/* Responsive dashboard layout */
+@media (max-width: 992px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .portfolio-summary, .market-overview {
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .dashboard-actions {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .order-list {
+    overflow-x: auto;
+  }
+  
+  .order-card {
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 576px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-card {
+    margin-bottom: 1rem;
+  }
+  
+  .dashboard-tabs button {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Floating action button for mobile */
+.floating-action-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #00dac6;
+  color: #1a1825;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  border: none;
+  font-size: 24px;
+  z-index: 1000;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.floating-action-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Add these styles to Dashboard.css */
+.dashboard-loading, .dashboard-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem;
+    text-align: center;
+}
+
+.loading-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid #00dac6;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.dashboard-error h2 {
+    color: #f44336;
+    margin-bottom: 1rem;
+}
+
+.dashboard-error button {
+    background-color: #00dac6;
+    color: #1a1825;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all 0.2s;
+}
+
+.dashboard-error button:hover {
+    background-color: #00c4b4;
+    transform: translateY(-2px);
+}
