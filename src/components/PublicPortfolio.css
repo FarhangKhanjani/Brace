@@ -1,0 +1,173 @@
+.public-portfolio-container {
+    padding: 2rem 0;
+    background-color: rgba(30, 27, 46, 0.5);
+    border-radius: 10px;
+    margin: 2rem 0;
+}
+
+.public-portfolio-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.public-portfolio-header h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #00dac6, #7b68ee);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+}
+
+.public-portfolio-header p {
+    color: #aaa;
+    font-size: 1.1rem;
+}
+
+.public-trades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 0 2rem;
+}
+
+.trade-card {
+    background-color: #1e1b2e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.trade-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: transparent;
+}
+
+.trade-card.profitable::before {
+    background-color: #4caf50;
+}
+
+.trade-card.loss::before {
+    background-color: #f44336;
+}
+
+.trade-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.trade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.trade-symbol {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.trade-type {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.trade-type.long {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+}
+
+.trade-type.short {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+}
+
+.trade-result {
+    text-align: center;
+    margin: 1.2rem 0;
+}
+
+.profit-loss-percentage {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.positive {
+    color: #4caf50;
+}
+
+.negative {
+    color: #f44336;
+}
+
+.trade-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.price-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.trader-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.trader-name {
+    font-size: 0.9rem;
+    color: #00dac6;
+    font-weight: 500;
+}
+
+.trade-date {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+.loading-spinner,
+.error-message,
+.no-trades-message {
+    text-align: center;
+    padding: 2rem;
+    color: #aaa;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .public-trades-grid {
+        grid-template-columns: 1fr;
+        padding: 0 1rem;
+    }
+    
+    .public-portfolio-header h2 {
+        font-size: 1.8rem;
+    }
+} 

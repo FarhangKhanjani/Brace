@@ -47,6 +47,18 @@ function SignUp() {
         if (data.user.identities && data.user.identities.length === 0) {
           setError('Check your email for the confirmation link');
         } else {
+          // After successful signup, initialize the user's profile with email as default nickname
+          await supabase
+            .from('users')
+            .insert([
+              {
+                id: data.user.id,
+                email: formData.email,
+                nickname: formData.email.split('@')[0], // Default nickname is the email prefix
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ]);
           navigate('/login');
         }
       }

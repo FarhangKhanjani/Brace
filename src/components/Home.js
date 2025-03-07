@@ -7,6 +7,7 @@ import {
 } from 'react-icons/bs';
 import { SiBinance, SiSolana } from 'react-icons/si';
 import axios from 'axios';
+import PublicPortfolio from './PublicPortfolio';
 
 const Home = () => {
     const [cryptoData, setCryptoData] = useState([]);
@@ -136,15 +137,15 @@ const Home = () => {
         }).format(price);
     };
 
-    return (
-        <div className="home-container">
+  return (
+    <div className="home-container">
             <section className="hero-section">
                 <h1 className="hero-title">Start and Build Your Crypto Portfolio Here</h1>
                 <p className="hero-subtitle">
                     Only at CryptoCap, you can build a good portfolio and learn best practices about cryptocurrency.
                 </p>
                 <Link to="/signup" className="get-started-btn">
-                    Get Started
+          Get Started
                 </Link>
             </section>
 
@@ -157,34 +158,36 @@ const Home = () => {
                     <div className="error-message">{error}</div>
                 ) : (
                     <div className="crypto-grid">
-                        {cryptoData.map((crypto) => (
+          {cryptoData.map((crypto) => (
                             <div key={crypto.id} className="crypto-card">
                                 <div className="crypto-header">
                                     <div className="crypto-icon">
                                         {crypto.icon}
-                                    </div>
+                </div>
                                     <div>
                                         <div className="crypto-name">{crypto.name}</div>
                                         <div className="crypto-symbol">{crypto.symbol.replace('USDT', '')}/USDT</div>
-                                    </div>
-                                </div>
+                </div>
+              </div>
                                 <div className="crypto-price">{formatPrice(crypto.price)}</div>
                                 <div className={`crypto-change ${crypto.change >= 0 ? 'positive' : 'negative'}`}>
                                     {crypto.change >= 0 ? '+' : ''}{crypto.change.toFixed(2)}%
-                                </div>
+              </div>
                                 <div className="crypto-details">
                                     <div className="detail-label">24h High:</div>
                                     <div className="detail-value">{formatPrice(crypto.high24h)}</div>
                                     <div className="detail-label">24h Low:</div>
                                     <div className="detail-value">{formatPrice(crypto.low24h)}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+              </div>
+            </div>
+          ))}
+        </div>
                 )}
             </section>
-        </div>
-    );
+
+            <PublicPortfolio />
+    </div>
+  );
 };
 
 export default Home; 

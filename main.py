@@ -214,9 +214,9 @@ async def login(email: str = Form(...), password: str = Form(...)):
         })
         
         if auth_response.user and auth_response.session:
-            return {
+        return {
                 "access_token": auth_response.session.access_token,
-                "user": {
+            "user": {
                     "email": auth_response.user.email,
                     "id": auth_response.user.id
                 }
@@ -376,7 +376,7 @@ async def get_user_orders(user_id: str):
             .select("*")\
             .eq('user_id', user_id)\
             .execute()
-            
+
         print(f"Found orders: {response.data}")
         return {"orders": response.data}
         

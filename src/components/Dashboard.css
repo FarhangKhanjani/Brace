@@ -10,7 +10,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }
 
 .header-actions {
@@ -178,15 +178,22 @@
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 1rem;
   }
   
-  .header-actions {
-    margin-top: 15px;
+  .dashboard-actions {
     width: 100%;
   }
   
-  .header-actions button {
-    flex: 1;
+  .orders-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .action-button {
+    width: 100%;
+    justify-content: center;
   }
   
   .orders-grid {
@@ -324,8 +331,7 @@
 
 .dashboard-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
 }
 
 .section-title {
@@ -457,4 +463,79 @@
   .history-details {
     grid-template-columns: 1fr;
   }
+}
+
+.welcome-message {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+/* Enhanced button styles */
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(0, 218, 198, 0.8), rgba(123, 104, 238, 0.8));
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, rgb(0, 218, 198), rgb(123, 104, 238));
+}
+
+.orders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  margin-top: 2rem;
+}
+
+.welcome-message h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  background: linear-gradient(90deg, #00dac6, #7b68ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
