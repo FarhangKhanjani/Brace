@@ -1,69 +1,71 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import './Dashboard.css';
 import OrderForm from './OrderForm';
-import ProfileUpdate from './ProfileUpdate';
-import OrderTracker from './OrderTracker';
-import OrderHistory from './OrderHistory';
-import { toast } from 'react-toastify';
-import config from '../config';
-import ProfileSection from './ProfileSection';
-import BlogSection from './BlogSection';
-
-const API_URL = config.API_URL;
+import { toast } from 'react-hot-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 const Dashboard = () => {
-    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedOrder, setSelectedOrder] = useState(null);
     const [showOrderForm, setShowOrderForm] = useState(false);
-    const [showOrderTracker, setShowOrderTracker] = useState(false);
-    const [user, setUser] = useState(null);
-    const [userLoaded, setUserLoaded] = useState(false);
+    const [userName, setUserName] = useState('');
     const [error, setError] = useState(null);
-    const [message, setMessage] = useState('');
-    const [activeTab, setActiveTab] = useState('orders');
-    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [debugInfo, setDebugInfo] = useState('');
+    const [editingOrder, setEditingOrder] = useState(null);
+    const [editFormData, setEditFormData] = useState({
+        stop_loss: '',
+        take_profit: ''
+    });
+    const [orderPrices, setOrderPrices] = useState({});
+    const [loadingPrices, setLoadingPrices] = useState(false);
+    const [activeTab, setActiveTab] = useState('orders'); // 'orders' or 'history'
+    const [orderHistory, setOrderHistory] = useState([]);
 
+    // Format date
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            month: 'numeric',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        });
+    };
+
+    // Get user name and fetch orders on component mount
     useEffect(() => {
-        // Get the current user
-        const getCurrentUser = async () => {
+        const getUserInfo = async () => {
             try {
-                const { data, error } = await supabase.auth.getUser();
-                
-                if (error) {
-                    throw error;
-                }
-                
+                const { data } = await supabase.auth.getUser();
                 if (data && data.user) {
-                    setUser(data.user);
+                    const email = data.user.email || '';
+                    setUserName(email.split('@')[0]);
                 }
+                await fetchOrders();
             } catch (error) {
-                console.error('Error getting user:', error);
-                toast.error('Failed to get user information');
-            } finally {
-                setUserLoaded(true);
+                console.error('Error getting user info:', error);
+                setError('Failed to load user information');
+                setLoading(false);
             }
         };
         
-        getCurrentUser();
+        getUserInfo();
     }, []);
 
-    useEffect(() => {
-        // Only fetch orders if we have a user
-        if (user) {
-            fetchOrders();
-        }
-    }, [user]);
-
+    // Fetch orders from the database
     const fetchOrders = async () => {
         try {
             setLoading(true);
             
-            // Fetch orders from your API or database
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
+            
             const { data, error } = await supabase
                 .from('orders')
                 .select('*')
@@ -74,296 +76,563 @@ const Dashboard = () => {
                 throw error;
             }
             
+            setDebugInfo(`Orders fetched: ${data ? data.length : 0}`);
             setOrders(data || []);
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching orders:', error);
-            toast.error('Failed to load orders');
+            setError('Failed to load orders');
+            setLoading(false);
+        }
+    };
+
+    // Handle order creation
+    const handleOrderCreated = (newOrder) => {
+        setOrders([newOrder, ...orders]);
+        setShowOrderForm(false);
+        toast.success('Order created successfully');
+    };
+
+    // Handle order deletion
+    const handleDeleteOrder = async (orderId) => {
+        try {
+            if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+                return;
+            }
+
+            // Show a loading toast
+            const loadingToast = toast.loading('Deleting order...');
+
+            // Delete from orders table 
+            const { error: orderError } = await supabase
+                .from('orders')
+                .delete()
+                .eq('id', orderId);
+                
+            if (orderError) {
+                throw orderError;
+            }
+            
+            // Also delete from order_history if it exists there
+            const { error: historyError } = await supabase
+                .from('order_history')
+                .delete()
+                .eq('order_id', orderId);
+            
+            // We don't throw here because it's okay if no history record exists
+            if (historyError) {
+                console.warn('Note: Could not delete from order_history:', historyError);
+            }
+            
+            // Update UI after successful deletion
+            setOrders(orders.filter(order => order.id !== orderId));
+            
+            // Dismiss loading toast and show success
+            toast.dismiss(loadingToast);
+            toast.success('Order deleted permanently');
+            
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            toast.error('Failed to delete order: ' + error.message);
+        }
+    };
+
+    // Add the handleEditOrder function
+    const handleEditOrder = (order) => {
+        setEditingOrder(order);
+        setEditFormData({
+            stop_loss: order.stop_loss,
+            take_profit: order.take_profit
+        });
+    };
+
+    // Add the handleSaveEdit function
+    const handleSaveEdit = async () => {
+        try {
+            if (!editingOrder) return;
+            
+            // Parse values
+            const numericStopLoss = parseFloat(editFormData.stop_loss);
+            const numericTakeProfit = parseFloat(editFormData.take_profit);
+            
+            // Validate inputs based on position type
+            if (editingOrder.position_type === 'LONG') {
+                if (numericStopLoss >= parseFloat(editingOrder.entry_price)) {
+                    toast.error('For LONG positions, Stop Loss must be lower than Entry Price');
+                    return;
+                }
+                if (numericTakeProfit <= parseFloat(editingOrder.entry_price)) {
+                    toast.error('For LONG positions, Take Profit must be higher than Entry Price');
+                    return;
+                }
+            } else { // SHORT
+                if (numericStopLoss <= parseFloat(editingOrder.entry_price)) {
+                    toast.error('For SHORT positions, Stop Loss must be higher than Entry Price');
+                    return;
+                }
+                if (numericTakeProfit >= parseFloat(editingOrder.entry_price)) {
+                    toast.error('For SHORT positions, Take Profit must be lower than Entry Price');
+                    return;
+                }
+            }
+            
+            // Update in database
+            const { error } = await supabase
+                .from('orders')
+                .update({
+                    stop_loss: numericStopLoss,
+                    take_profit: numericTakeProfit,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', editingOrder.id);
+                
+            if (error) throw error;
+            
+            // Update local state
+            setOrders(orders.map(order => 
+                order.id === editingOrder.id 
+                    ? { ...order, stop_loss: numericStopLoss, take_profit: numericTakeProfit }
+                    : order
+            ));
+            
+            toast.success('Order updated successfully!');
+            setEditingOrder(null);
+            
+        } catch (error) {
+            console.error('Error updating order:', error);
+            toast.error(`Failed to update order: ${error.message}`);
+        }
+    };
+
+    // Add these input change handlers
+    const handleEditInputChange = (e) => {
+        const { name, value } = e.target;
+        setEditFormData({
+            ...editFormData,
+            [name]: value
+        });
+    };
+
+    // Add this useEffect to fetch current prices
+    useEffect(() => {
+        const fetchCurrentPrices = async () => {
+            if (!orders.length) return;
+            
+            setLoadingPrices(true);
+            const uniqueSymbols = [...new Set(orders.map(order => order.symbol))];
+            const pricesObj = {};
+            
+            try {
+                for (const symbol of uniqueSymbols) {
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+                    const data = await response.json();
+                    
+                    if (data.price) {
+                        pricesObj[symbol] = parseFloat(data.price);
+                    }
+                }
+                
+                setOrderPrices(pricesObj);
+            } catch (error) {
+                console.error('Error fetching prices:', error);
+            } finally {
+                setLoadingPrices(false);
+            }
+        };
+        
+        fetchCurrentPrices();
+        
+        // Set up a refresh interval (every 30 seconds)
+        const interval = setInterval(fetchCurrentPrices, 30000);
+        
+        return () => clearInterval(interval);
+    }, [orders]);
+
+    // Calculate profit/loss percentage
+    const calculateProfitLoss = (order) => {
+        if (!orderPrices[order.symbol]) return null;
+        
+        const currentPrice = orderPrices[order.symbol];
+        const entryPrice = parseFloat(order.entry_price);
+        let profitLossPercent;
+        
+        if (order.position_type === 'LONG') {
+            profitLossPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
+        } else { // SHORT
+            profitLossPercent = ((entryPrice - currentPrice) / entryPrice) * 100;
+        }
+        
+        return profitLossPercent.toFixed(2);
+    };
+
+    // Add the handleCloseOrder function
+    const handleCloseOrder = async (order) => {
+        try {
+            if (!window.confirm('Are you sure you want to close this order? This will record the result in your order history.')) {
+                return;
+            }
+            
+            // Need current price to calculate final profit/loss
+            if (!orderPrices[order.symbol]) {
+                toast.error('Cannot close order: Current price data unavailable');
+                return;
+            }
+            
+            const currentPrice = orderPrices[order.symbol];
+            const entryPrice = parseFloat(order.entry_price);
+            let profitLossPercent;
+            
+            if (order.position_type === 'LONG') {
+                profitLossPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
+            } else { // SHORT
+                profitLossPercent = ((entryPrice - currentPrice) / entryPrice) * 100;
+            }
+            
+            // Show a loading toast
+            const loadingToast = toast.loading('Closing order...');
+            
+            // First, add to order_history with explicit ID to avoid constraint violation
+            const { error: historyError } = await supabase
+                .from('order_history')
+                .insert([
+                    {
+                        id: uuidv4(), // Generate our own UUID
+                        order_id: order.id,
+                        user_id: order.user_id,
+                        symbol: order.symbol,
+                        entry_price: order.entry_price,
+                        stop_loss: order.stop_loss,
+                        take_profit: order.take_profit,
+                        position_type: order.position_type,
+                        close_price: currentPrice,
+                        profit_loss: profitLossPercent.toFixed(2),
+                        close_reason: 'manual_close',
+                        created_at: order.created_at,
+                        closed_at: new Date().toISOString()
+                    }
+                ]);
+            
+            if (historyError) {
+                throw historyError;
+            }
+            
+            // Then, delete the original order
+            const { error: deleteError } = await supabase
+                .from('orders')
+                .delete()
+                .eq('id', order.id);
+                
+            if (deleteError) {
+                throw deleteError;
+            }
+            
+            // Dismiss loading toast and show success
+            toast.dismiss(loadingToast);
+            toast.success(`Order closed with ${profitLossPercent >= 0 ? 'profit' : 'loss'} of ${Math.abs(profitLossPercent).toFixed(2)}%`);
+            
+            // Refresh orders list
+            fetchOrders();
+            
+        } catch (error) {
+            console.error('Error closing order:', error);
+            toast.error('Failed to close order: ' + error.message);
+        }
+    };
+
+    // Add a function to fetch order history
+    const fetchOrderHistory = async () => {
+        try {
+            setLoading(true);
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
+            
+            const { data, error } = await supabase
+                .from('order_history')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('closed_at', { ascending: false });
+                
+            if (error) {
+                throw error;
+            }
+            
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching order history:', error);
+            setError('Failed to load order history');
+            return [];
         } finally {
             setLoading(false);
         }
     };
 
-    // Handle order submission
-    const handleOrderSubmit = async (orderData) => {
-        if (!user) return;
-        
-        try {
-            setError(null);
-            
-            // Log the complete order data with user ID
-            const completeOrderData = {
-                ...orderData,
-                user_id: user.id
+    // Modify the component to handle tab switching
+    useEffect(() => {
+        if (activeTab === 'history') {
+            const getHistory = async () => {
+                const history = await fetchOrderHistory();
+                setOrderHistory(history);
             };
-            
-            console.log("Complete order data:", completeOrderData);
-            
-            // First ensure user exists in database
-            await axios.post(`${API_URL}/ensure-user`, {
-                id: user.id,
-                email: user.email
-            });
-            
-            // Then create the order with the user_id explicitly included
-            const response = await axios.post(`${API_URL}/orders`, completeOrderData);
-            
-            console.log("Order creation response:", response.data);
-            
-            if (response.data) {
-                // Fetch all orders again to ensure we have the latest data
-                fetchOrders();
-                
-                setShowOrderForm(false);
-                setMessage("Order created successfully!");
-                
-                // Clear message after 3 seconds
-                setTimeout(() => setMessage(""), 3000);
-            }
-        } catch (error) {
-            console.error("Order submission error:", error.response?.data || error);
-            setError(error.response?.data?.detail || "Failed to create order. Please try again.");
-        }
-    };
-
-    const handleOrderClick = (order) => {
-        setSelectedOrder(order);
-    };
-
-    const handleOrderDelete = async (orderId) => {
-        if (!user) return;
-        
-        try {
-            await axios.delete(`${API_URL}/orders/${orderId}`);
-            
-            // Fetch all orders again to ensure we have the latest data
+            getHistory();
+        } else {
             fetchOrders();
-            
-            // Clear selected order if it was the one deleted
-            if (selectedOrder && selectedOrder.id === orderId) {
-                setSelectedOrder(null);
-            }
-            
-            // Show success message
-            toast.success("Order deleted successfully");
-        } catch (error) {
-            console.error("Error deleting order:", error);
-            toast.error("Failed to delete order");
         }
-    };
-
-    const handleOrderEdit = async (updatedOrder) => {
-        if (!user) return;
-        
-        try {
-            await axios.put(`${API_URL}/orders/${updatedOrder.id}`, updatedOrder);
-            
-            // Fetch all orders again to ensure we have the latest data
-            fetchOrders();
-            
-            // Update selected order if it's the one that was edited
-            if (selectedOrder && selectedOrder.id === updatedOrder.id) {
-                setSelectedOrder(updatedOrder);
-            }
-            
-            // Show success message
-            toast.success("Order updated successfully");
-        } catch (error) {
-            console.error("Error updating order:", error);
-            toast.error("Failed to update order");
-        }
-    };
-
-    const handleOrderClose = async (closedOrder) => {
-        if (!user) return;
-        
-        try {
-            // Fetch all orders again to ensure we have the latest data
-            fetchOrders();
-            
-            // Clear selected order if it was closed
-            if (selectedOrder && selectedOrder.id === closedOrder.order_id) {
-                setSelectedOrder(null);
-            }
-            
-            // Show success message
-            toast.success("Order closed successfully");
-        } catch (error) {
-            console.error("Error handling closed order:", error);
-            toast.error("Failed to process closed order");
-        }
-    };
-
-    // If user data is still loading, show a loading indicator
-    if (!userLoaded) {
-        return (
-            <div className="dashboard-loading">
-                <div className="loading-spinner"></div>
-                <p>Loading dashboard...</p>
-            </div>
-        );
-    }
-
-    // If no user is found after loading, handle this case
-    if (!user) {
-        return (
-            <div className="dashboard-error">
-                <h2>Authentication Error</h2>
-                <p>Unable to load user data. Please try logging in again.</p>
-                <button onClick={() => window.location.href = '/login'}>
-                    Go to Login
-                </button>
-            </div>
-        );
-    }
+    }, [activeTab]);
 
     return (
-        <div className="dashboard">
-            <header className="dashboard-header">
-                <h1>Welcome, {user ? user.email.split('@')[0] : 'Trader'}</h1>
+        <div className="dashboard-container">
+            <div className="dashboard-header">
+                <h1>Welcome, {userName}</h1>
                 <div className="header-actions">
                     <button 
-                        className="update-profile-btn" 
-                        onClick={() => setShowProfileModal(true)}
+                        className="refresh-btn"
+                        onClick={fetchOrders}
                     >
-                        Update Profile
-                    </button>
-                    <button 
-                        className="add-order-btn" 
-                        onClick={() => setShowOrderForm(true)}
-                    >
-                        Add New Order
+                        Refresh Orders
                     </button>
                 </div>
-            </header>
+            </div>
             
-            {error && <div className="error-message">{error}</div>}
-            {message && <div className="success-message">{message}</div>}
+            {/* Debug info - only in development */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="debug-info">
+                    <details>
+                        <summary>Debug Info</summary>
+                        <pre>{debugInfo}</pre>
+                    </details>
+                </div>
+            )}
             
+            {/* Tab Navigation */}
             <div className="dashboard-tabs">
-                <button 
-                    className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+                <button
+                    className={`dashboard-tab ${activeTab === 'orders' ? 'active' : ''}`}
                     onClick={() => setActiveTab('orders')}
                 >
                     Active Orders
                 </button>
-                <button 
-                    className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                <button
+                    className={`dashboard-tab ${activeTab === 'history' ? 'active' : ''}`}
                     onClick={() => setActiveTab('history')}
                 >
                     Order History
                 </button>
             </div>
             
-            <div className="tab-content">
-                {activeTab === 'orders' && (
-                    <div className="orders-container">
-                        <div className="orders-section">
-                            <h2>Your Orders</h2>
-                            {loading ? (
-                                <div className="loading-indicator">Loading orders...</div>
-                            ) : (
-                                <div className="orders-grid">
-                                    {orders.length > 0 ? (
-                                        orders.map((order) => (
-                                            <OrderCard 
-                                                key={order.id} 
-                                                order={order} 
-                                                onClick={handleOrderClick}
-                                                isSelected={selectedOrder && selectedOrder.id === order.id}
-                                            />
-                                        ))
-                                    ) : (
-                                        <p>No orders yet. Create your first order!</p>
-                                    )}
-                                </div>
-                            )}
+            {/* Action Buttons */}
+            <div className="dashboard-actions">
+                <button 
+                    className="new-order-btn" 
+                    onClick={() => setShowOrderForm(true)}
+                >
+                    Add New Order
+                </button>
+            </div>
+            
+            {/* Content based on active tab */}
+            {activeTab === 'orders' ? (
+                <>
+                    <h2 className="section-title">Your Orders</h2>
+                    {loading ? (
+                        <div className="loading-indicator">
+                            Loading orders...
                         </div>
-                        
-                        {selectedOrder && (
-                            <div className="tracker-section">
-                                <h2>Order Tracker</h2>
-                                <OrderTracker 
-                                    order={selectedOrder} 
-                                    onDelete={handleOrderDelete}
-                                    onEdit={handleOrderEdit}
-                                    onClose={handleOrderClose}
-                                />
+                    ) : error ? (
+                        <div className="error-message">
+                            {error}
+                        </div>
+                    ) : orders.length === 0 ? (
+                        <div className="no-orders">
+                            <p>You don't have any orders yet. Click "Add New Order" to create one.</p>
+                        </div>
+                    ) : (
+                        <div className="orders-grid">
+                            {orders.map(order => {
+                                const positionType = order.position_type || 'long';
+                                
+                                return (
+                                    <div key={order.id} className="order-card">
+                                        <div className="order-header">
+                                            <h3>{order.symbol}</h3>
+                                            <span className={`position-type ${order.position_type.toLowerCase()}`}>
+                                                {order.position_type}
+                                            </span>
+                                        </div>
+                                        
+                                        {editingOrder && editingOrder.id === order.id ? (
+                                            // Edit mode
+                                            <div className="order-edit-form">
+                                                <div className="form-group">
+                                                    <label>Stop Loss ($)</label>
+                                                    <input
+                                                        type="number"
+                                                        name="stop_loss"
+                                                        value={editFormData.stop_loss}
+                                                        onChange={handleEditInputChange}
+                                                        step="0.01"
+                                                    />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Take Profit ($)</label>
+                                                    <input
+                                                        type="number"
+                                                        name="take_profit"
+                                                        value={editFormData.take_profit}
+                                                        onChange={handleEditInputChange}
+                                                        step="0.01"
+                                                    />
+                                                </div>
+                                                <div className="edit-actions">
+                                                    <button 
+                                                        className="save-btn" 
+                                                        onClick={handleSaveEdit}
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button 
+                                                        className="cancel-btn"
+                                                        onClick={() => setEditingOrder(null)}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            // View mode
+                                            <>
+                                                <div className="order-details">
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Entry Price:</span>
+                                                        <span className="detail-value">${parseFloat(order.entry_price).toFixed(2)}</span>
+                                                    </div>
+                                                    
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Stop Loss:</span>
+                                                        <span className="detail-value">${parseFloat(order.stop_loss).toFixed(2)}</span>
+                                                    </div>
+                                                    
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Take Profit:</span>
+                                                        <span className="detail-value">${parseFloat(order.take_profit).toFixed(2)}</span>
+                                                    </div>
+                                                    
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Created:</span>
+                                                        <span className="detail-value">
+                                                            {new Date(order.created_at).toLocaleDateString()} {new Date(order.created_at).toLocaleTimeString()}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* Current Price & Profit/Loss Display */}
+                                                    {orderPrices[order.symbol] && (
+                                                        <>
+                                                            <div className="detail-row current-price">
+                                                                <span className="detail-label">Current Price:</span>
+                                                                <span className="detail-value">${orderPrices[order.symbol].toFixed(2)}</span>
+                                                            </div>
+                                                            
+                                                            <div className="detail-row profit-loss">
+                                                                <span className="detail-label">Profit/Loss:</span>
+                                                                <span className={`detail-value ${parseFloat(calculateProfitLoss(order)) >= 0 ? 'positive' : 'negative'}`}>
+                                                                    {parseFloat(calculateProfitLoss(order)) >= 0 ? '+' : ''}
+                                                                    {calculateProfitLoss(order)}%
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="order-actions">
+                                                    <button 
+                                                        className="edit-btn" 
+                                                        onClick={() => handleEditOrder(order)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        className="close-btn" 
+                                                        onClick={() => handleCloseOrder(order)}
+                                                    >
+                                                        Close Position
+                                                    </button>
+                                                    <button 
+                                                        className="delete-btn" 
+                                                        onClick={() => handleDeleteOrder(order.id)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </>
+            ) : (
+                <>
+                    <h2 className="section-title">Order History</h2>
+                    <div className="order-history-container">
+                        {loading ? (
+                            <div className="loading-message">Loading order history...</div>
+                        ) : orderHistory.length === 0 ? (
+                            <div className="no-orders-message">No closed orders yet</div>
+                        ) : (
+                            <div className="history-grid">
+                                {orderHistory.map(order => (
+                                    <div 
+                                        key={order.id} 
+                                        className={`history-card ${parseFloat(order.profit_loss) >= 0 ? 'profit' : 'loss'}`}
+                                    >
+                                        <div className="history-header">
+                                            <div className="history-symbol">{order.symbol}</div>
+                                            <div className={`history-position ${order.position_type.toLowerCase()}`}>
+                                                {order.position_type}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="history-result">
+                                            <span className={`profit-loss-value ${parseFloat(order.profit_loss) >= 0 ? 'positive' : 'negative'}`}>
+                                                {parseFloat(order.profit_loss) >= 0 ? '+' : ''}
+                                                {parseFloat(order.profit_loss).toFixed(2)}%
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="history-details">
+                                            <div className="history-prices">
+                                                <div className="price-row">
+                                                    <span className="price-label">Entry:</span>
+                                                    <span className="price-value">${parseFloat(order.entry_price).toFixed(2)}</span>
+                                                </div>
+                                                <div className="price-row">
+                                                    <span className="price-label">Close:</span>
+                                                    <span className="price-value">${parseFloat(order.close_price).toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="history-dates">
+                                                <div className="date-row">
+                                                    <span className="date-label">Opened:</span>
+                                                    <span className="date-value">{formatDate(order.created_at)}</span>
+                                                </div>
+                                                <div className="date-row">
+                                                    <span className="date-label">Closed:</span>
+                                                    <span className="date-value">{formatDate(order.closed_at)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
-                )}
-                
-                {activeTab === 'history' && (
-                    <div className="history-container">
-                        {user && <OrderHistory userId={user.id} />}
-                    </div>
-                )}
-            </div>
-
-            {showOrderForm && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <OrderForm 
-                            onSubmit={handleOrderSubmit} 
-                            user={user} 
-                            onCancel={() => setShowOrderForm(false)}
-                        />
-                    </div>
-                </div>
+                </>
             )}
-
-            {showProfileModal && (
-                <ProfileUpdate 
-                    user={user} 
-                    onClose={() => setShowProfileModal(false)} 
-                />
-            )}
-
-            <div className="profile-blog-container">
-                <ProfileSection userId={user.id} />
-                <BlogSection userId={user.id} isCurrentUser={true} />
-            </div>
-        </div>
-    );
-};
-
-const OrderCard = ({ order, onClick, isSelected }) => {
-    // Extract date from ISO string
-    const date = new Date(order.created_at).toLocaleString();
-    
-    // Add fallback for position_type if it doesn't exist in older orders
-    const positionType = order.position_type || 'long'; // Default to 'long' if undefined
-    
-    return (
-        <div 
-            className={`order-card ${positionType === 'short' ? 'short' : 'long'} ${isSelected ? 'selected' : ''}`} 
-            onClick={() => onClick(order)}
-        >
-            <div className="order-header">
-                <div className="order-symbol">{order.symbol}</div>
-                <div className={`order-position-type ${positionType}`}>
-                    {positionType.toUpperCase()}
-                </div>
-                <div className="order-status">{order.status.toUpperCase()}</div>
-            </div>
-            <div className="order-details">
-                <div className="detail-row">
-                    <span className="detail-label">Entry Price:</span>
-                    <span className="detail-value">{parseFloat(order.entry_price).toFixed(2)}</span>
-                </div>
-                <div className="detail-row">
-                    <span className="detail-label">Stop Loss:</span>
-                    <span className="detail-value">{parseFloat(order.stop_loss).toFixed(2)}</span>
-                </div>
-                <div className="detail-row">
-                    <span className="detail-label">Take Profit:</span>
-                    <span className="detail-value">{parseFloat(order.take_profit).toFixed(2)}</span>
-                </div>
-                <div className="detail-row created-at">
-                    <span className="detail-label">Created:</span>
-                    <span className="detail-value">{date}</span>
-                </div>
-            </div>
         </div>
     );
 };

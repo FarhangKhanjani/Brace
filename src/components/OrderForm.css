@@ -1,20 +1,70 @@
 .order-form-container {
   background-color: #1e1b2e;
-  border-radius: 12px;
-  padding: 20px;
-  width: 100%;
-  max-width: 500px;
-  margin: 0 auto;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.order-form-container h2 {
+  margin-bottom: 1.5rem;
+  color: #00dac6;
+}
+
+.order-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  color: #ddd;
+  display: flex;
+  align-items: center;
+}
+
+.form-group input {
+  padding: 0.8rem;
+  border: 1px solid #2a2740;
+  border-radius: 5px;
+  background-color: #13111c;
+  color: white;
+}
+
+.order-submit-btn {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background-color: #00dac6;
+  color: #1a1825;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.order-submit-btn:hover {
+  background-color: #00c4b4;
+}
+
+.order-submit-btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
 }
 
 .form-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #2c2c2c;
-  padding-bottom: 15px;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #2a2740;
+  padding-bottom: 1rem;
 }
 
 .form-header h2 {
@@ -43,61 +93,6 @@
   color: white;
 }
 
-.order-form {
-  width: 100%;
-}
-
-.form-group {
-  margin-bottom: 1.2rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: white;
-  font-weight: 500;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #2c2c2c;
-  border-radius: 5px;
-  background-color: #13111c;
-  color: white;
-  font-size: 1rem;
-}
-
-.form-group input:focus {
-  border-color: #00dac6;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(0, 218, 198, 0.2);
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 0.8rem;
-  background-color: #00dac6;
-  color: black;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-  margin-top: 1rem;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-
-.submit-btn:hover {
-  background-color: #00c4b4;
-}
-
-.submit-btn:disabled {
-  background-color: #2c2c2c;
-  color: #666;
-  cursor: not-allowed;
-}
-
 .error-message {
   background-color: rgba(244, 67, 54, 0.1);
   border-left: 4px solid #f44336;
@@ -116,56 +111,45 @@
 
 .position-type-selector {
   display: flex;
-  gap: 10px;
-  margin-top: 5px;
+  gap: 1rem;
 }
 
 .position-btn {
   flex: 1;
-  padding: 12px;
-  border: none;
+  padding: 0.8rem;
   border-radius: 5px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 1rem;
+  transition: all 0.3s ease;
+  border: none;
 }
 
-.position-btn.active {
-  color: white;
-}
-
-.position-btn:hover:not(.active) {
-  background-color: #2a2a3a;
-  color: #ddd;
-}
-
-/* Long button */
 .position-btn:first-child {
-  background-color: #1a1a28;
-  border: 2px solid #4caf50;
+  background-color: rgba(76, 175, 80, 0.2);
   color: #4caf50;
+  border: 1px solid #4caf50;
 }
 
 .position-btn:first-child.active {
   background-color: #4caf50;
+  color: white;
 }
 
-/* Short button */
 .position-btn:last-child {
-  background-color: #1a1a28;
-  border: 2px solid #f44336;
+  background-color: rgba(244, 67, 54, 0.2);
   color: #f44336;
+  border: 1px solid #f44336;
 }
 
 .position-btn:last-child.active {
   background-color: #f44336;
+  color: white;
 }
 
 .validation-hint {
+  margin-left: 0.5rem;
   font-size: 0.8rem;
-  margin-left: 10px;
-  color: #888;
+  color: #aaa;
   font-style: italic;
 }
 
@@ -187,4 +171,96 @@
     width: 100%;
     margin: 0.5rem 0;
   }
+
+  .position-type-selector {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #f44336;
+}
+
+/* Add styles for the symbol select dropdown */
+.symbol-select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #2a2a3a;
+  color: #fff;
+  border: 1px solid #3a3a4a;
+  font-size: 16px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+.symbol-select:focus {
+  outline: none;
+  border-color: #7b68ee;
+  box-shadow: 0 0 0 2px rgba(123, 104, 238, 0.25);
+}
+
+/* Add helper text styling */
+.helper-text {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-weight: normal;
+}
+
+/* Ensure position buttons have proper colors */
+.position-btn.active {
+  color: white;
+}
+
+.position-btn.active:first-child {
+  background-color: #4caf50;
+}
+
+.position-btn.active:last-child {
+  background-color: #f44336;
+}
+
+/* Add styles for the current price display */
+.current-price-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  margin: 15px 0;
+  background-color: rgba(0, 218, 198, 0.1);
+  border-radius: 5px;
+  border-left: 3px solid #00dac6;
+}
+
+.current-price-display.loading {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid #aaa;
+}
+
+.price-label {
+  font-weight: 500;
+  color: #aaa;
+}
+
+.price-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #00dac6;
 } 

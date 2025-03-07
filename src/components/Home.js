@@ -170,7 +170,7 @@ const Home = () => {
                                 </div>
                                 <div className="crypto-price">{formatPrice(crypto.price)}</div>
                                 <div className={`crypto-change ${crypto.change >= 0 ? 'positive' : 'negative'}`}>
-                                    {crypto.change >= 0 ? '+' : ''}{crypto.change}%
+                                    {crypto.change >= 0 ? '+' : ''}{crypto.change.toFixed(2)}%
                                 </div>
                                 <div className="crypto-details">
                                     <div className="detail-label">24h High:</div>

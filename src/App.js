@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './supabase';
 import './App.css';
 import Login from './components/Login';
@@ -16,6 +16,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ResetPassword from './components/ResetPassword';
 import { startActivityMonitoring } from './utils/sessionManager';
 import Navbar from './components/Navbar';
+import BuyMeCoffee from './components/BuyMeCoffee';
+import FAQ from './components/FAQ';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -78,7 +80,7 @@ function App() {
           <Navbar session={session} onLogout={handleLogout} />
 
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<><Home /><BuyMeCoffee /></>} />
             <Route 
               path="/login" 
               element={session ? <Navigate to="/dashboard" /> : <Login />} 
@@ -93,9 +95,11 @@ function App() {
             />
             <Route path="/env-test" element={<EnvTest />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/faq" element={<FAQ />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
           <Footer />
+          <BuyMeCoffee />
         </div>
       </Router>
       <Toaster position="top-right" />
