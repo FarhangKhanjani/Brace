@@ -96,7 +96,7 @@ const OrderTracker = ({ order, onDelete, onEdit, onClose }) => {
         const fetchPrice = async () => {
             try {
                 // Use our new price service
-                const newPrice = await getCurrentPrice(order.symbol);
+                const newPrice = await getCurrentPrice(order.symbol, order.market_type || 'crypto');
                 
                 // Log price updates for debugging
                 console.log(`Real price update for ${order.symbol}: ${newPrice}`);

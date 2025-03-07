@@ -23,22 +23,66 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
     const [isSubmitting, setIsSubmitting] = useState(false); // Add this to prevent double submission
     const [currentPrice, setCurrentPrice] = useState(null);
     const [fetchingPrice, setFetchingPrice] = useState(false);
+    const [marketType, setMarketType] = useState('crypto'); // Default to crypto
+    const [forexPairs, setForexPairs] = useState([]);
+
+    // Fetch forex pairs when market type is forex
+    useEffect(() => {
+        if (marketType === 'forex') {
+            const fetchForexPairs = async () => {
+                try {
+                    const apiKey = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY;
+                    // Alpha Vantage doesn't have a direct endpoint for all forex pairs
+                    // So we'll use a predefined list of common pairs
+                    setForexPairs([
+                        'EUR/USD', 'USD/JPY', 'GBP/USD', 'USD/CHF', 'USD/CAD', 
+                        'AUD/USD', 'NZD/USD', 'EUR/GBP', 'EUR/JPY', 'GBP/JPY'
+                    ]);
+                } catch (error) {
+                    console.error('Error loading forex pairs:', error);
+                    toast.error('Failed to load forex pairs');
+                }
+            };
+            
+            fetchForexPairs();
+        }
+    }, [marketType]);
 
     // Fetch current price when symbol changes
     useEffect(() => {
         const fetchCurrentPrice = async () => {
             try {
                 setFetchingPrice(true);
-                const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
-                const data = await response.json();
                 
-                if (data.price) {
-                    setCurrentPrice(parseFloat(data.price));
-                    // Optionally auto-fill the entry price field
-                    setEntryPrice(parseFloat(data.price).toFixed(2));
-                } else {
-                    setCurrentPrice(null);
-                    toast.error(`Could not fetch price for ${symbol}`);
+                if (marketType === 'crypto') {
+                    // Existing crypto price fetch logic
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+                    const data = await response.json();
+                    
+                    if (data.price) {
+                        setCurrentPrice(parseFloat(data.price));
+                        setEntryPrice(parseFloat(data.price).toFixed(2));
+                    } else {
+                        setCurrentPrice(null);
+                        toast.error(`Could not fetch price for ${symbol}`);
+                    }
+                } else if (marketType === 'forex') {
+                    // Forex price fetch using Alpha Vantage
+                    const apiKey = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY;
+                    const [fromCurrency, toCurrency] = symbol.split('/');
+                    const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${fromCurrency}&to_currency=${toCurrency}&apikey=${apiKey}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data['Realtime Currency Exchange Rate']) {
+                        const price = parseFloat(data['Realtime Currency Exchange Rate']['5. Exchange Rate']);
+                        setCurrentPrice(price);
+                        setEntryPrice(price.toFixed(4));
+                    } else {
+                        setCurrentPrice(null);
+                        toast.error(`Could not fetch price for ${symbol}`);
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching price:', error);
@@ -48,8 +92,10 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
             }
         };
         
-        fetchCurrentPrice();
-    }, [symbol]);
+        if (symbol) {
+            fetchCurrentPrice();
+        }
+    }, [symbol, marketType]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -108,17 +154,18 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
                 return;
             }
             
-            // Create the order in the database
+            // Create the order in the database with market_type
             const { data, error } = await supabase
                 .from('orders')
                 .insert([
                     {
                         user_id: user.id,
-                        symbol: symbol, // Use the selected symbol directly (already uppercase)
+                        symbol: symbol,
                         entry_price: numericEntryPrice,
                         stop_loss: numericStopLoss,
                         take_profit: numericTakeProfit,
                         position_type: positionType,
+                        market_type: marketType,
                         status: 'open',
                         created_at: new Date().toISOString()
                     }
@@ -169,17 +216,44 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
             
             <form onSubmit={handleSubmit} className="order-form">
                 <div className="form-group">
+                    <label>Market Type</label>
+                    <div className="market-type-selector">
+                        <button
+                            type="button"
+                            className={`market-btn ${marketType === 'crypto' ? 'active' : ''}`}
+                            onClick={() => setMarketType('crypto')}
+                        >
+                            Cryptocurrency
+                        </button>
+                        <button
+                            type="button"
+                            className={`market-btn ${marketType === 'forex' ? 'active' : ''}`}
+                            onClick={() => setMarketType('forex')}
+                        >
+                            Forex
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="form-group">
                     <label htmlFor="symbol">Symbol</label>
                     <select
                         id="symbol"
+                        className="form-input"
                         value={symbol}
                         onChange={(e) => setSymbol(e.target.value)}
                         required
-                        className="symbol-select"
                     >
-                        {popularSymbols.map(sym => (
-                            <option key={sym} value={sym}>{sym}</option>
-                        ))}
+                        <option value="">Select a {marketType === 'crypto' ? 'cryptocurrency' : 'forex pair'}</option>
+                        {marketType === 'crypto' ? (
+                            popularSymbols.map(sym => (
+                                <option key={sym} value={sym}>{sym}</option>
+                            ))
+                        ) : (
+                            forexPairs.map(pair => (
+                                <option key={pair} value={pair}>{pair}</option>
+                            ))
+                        )}
                     </select>
                 </div>
                 

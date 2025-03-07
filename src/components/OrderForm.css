@@ -263,4 +263,32 @@
   font-weight: 700;
   font-size: 1.1rem;
   color: #00dac6;
+}
+
+/* Add this to your OrderForm.css */
+.market-type-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.market-btn {
+    flex: 1;
+    padding: 0.75rem;
+    background-color: rgba(30, 27, 46, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.market-btn.active {
+    background-color: rgba(0, 218, 198, 0.2);
+    border-color: #00dac6;
+    color: white;
+}
+
+.market-btn:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.05);
 } 

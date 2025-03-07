@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 import ProfileForm from './ProfileForm';
 import { FaPlus, FaUserEdit, FaSync } from 'react-icons/fa';
+import Notifications from './Notifications';
 
 const Dashboard = () => {
     const [orders, setOrders] = useState([]);
@@ -236,16 +237,39 @@ const Dashboard = () => {
             if (!orders.length) return;
             
             setLoadingPrices(true);
-            const uniqueSymbols = [...new Set(orders.map(order => order.symbol))];
+            // Group symbols by market type
+            const cryptoSymbols = [...new Set(orders
+                .filter(order => order.market_type === 'crypto' || !order.market_type)
+                .map(order => order.symbol))];
+                
+            const forexPairs = [...new Set(orders
+                .filter(order => order.market_type === 'forex')
+                .map(order => order.symbol))];
+            
             const pricesObj = {};
             
             try {
-                for (const symbol of uniqueSymbols) {
+                // Fetch crypto prices
+                for (const symbol of cryptoSymbols) {
                     const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
                     const data = await response.json();
                     
                     if (data.price) {
-                        pricesObj[symbol] = parseFloat(data.price);
+                        pricesObj[`crypto_${symbol}`] = parseFloat(data.price);
+                    }
+                }
+                
+                // Fetch forex prices
+                const alphaVantageKey = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY;
+                for (const pair of forexPairs) {
+                    const [fromCurrency, toCurrency] = pair.split('/');
+                    const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${fromCurrency}&to_currency=${toCurrency}&apikey=${alphaVantageKey}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data['Realtime Currency Exchange Rate']) {
+                        pricesObj[`forex_${pair}`] = parseFloat(data['Realtime Currency Exchange Rate']['5. Exchange Rate']);
                     }
                 }
                 
@@ -265,11 +289,14 @@ const Dashboard = () => {
         return () => clearInterval(interval);
     }, [orders]);
 
-    // Calculate profit/loss percentage
+    // Update the calculateProfitLoss function to handle market types
     const calculateProfitLoss = (order) => {
-        if (!orderPrices[order.symbol]) return null;
+        const marketType = order.market_type || 'crypto';
+        const priceKey = `${marketType}_${order.symbol}`;
         
-        const currentPrice = orderPrices[order.symbol];
+        if (!orderPrices[priceKey]) return null;
+        
+        const currentPrice = orderPrices[priceKey];
         const entryPrice = parseFloat(order.entry_price);
         let profitLossPercent;
         
@@ -415,6 +442,7 @@ const Dashboard = () => {
                     <h1>Welcome, {userName}!</h1>
                 </div>
                 <div className="dashboard-actions">
+                    <Notifications />
                     <button 
                         className="action-button profile-button"
                         onClick={() => setShowProfileForm(true)}
@@ -425,7 +453,7 @@ const Dashboard = () => {
                         className="action-button refresh-button" 
                         onClick={fetchOrders}
                     >
-                        Refresh Orders
+                        <FaSync /> Refresh Orders
                     </button>
                 </div>
             </div>
@@ -562,22 +590,29 @@ const Dashboard = () => {
                                                     </div>
                                                     
                                                     {/* Current Price & Profit/Loss Display */}
-                                                    {orderPrices[order.symbol] && (
-                                                        <>
-                                                            <div className="detail-row current-price">
-                                                                <span className="detail-label">Current Price:</span>
-                                                                <span className="detail-value">${orderPrices[order.symbol].toFixed(2)}</span>
-                                                            </div>
-                                                            
-                                                            <div className="detail-row profit-loss">
-                                                                <span className="detail-label">Profit/Loss:</span>
-                                                                <span className={`detail-value ${parseFloat(calculateProfitLoss(order)) >= 0 ? 'positive' : 'negative'}`}>
-                                                                    {parseFloat(calculateProfitLoss(order)) >= 0 ? '+' : ''}
-                                                                    {calculateProfitLoss(order)}%
-                                                                </span>
-                                                            </div>
-                                                        </>
-                                                    )}
+                                                    {(() => {
+                                                        const marketType = order.market_type || 'crypto';
+                                                        const priceKey = `${marketType}_${order.symbol}`;
+                                                        return orderPrices[priceKey] && (
+                                                            <>
+                                                                <div className="detail-row current-price">
+                                                                    <span className="detail-label">Current Price:</span>
+                                                                    <span className="detail-value">
+                                                                        {marketType === 'forex' ? '' : '$'}
+                                                                        {orderPrices[priceKey].toFixed(marketType === 'forex' ? 4 : 2)}
+                                                                    </span>
+                                                                </div>
+                                                                
+                                                                <div className="detail-row profit-loss">
+                                                                    <span className="detail-label">Profit/Loss:</span>
+                                                                    <span className={`detail-value ${parseFloat(calculateProfitLoss(order)) >= 0 ? 'positive' : 'negative'}`}>
+                                                                        {parseFloat(calculateProfitLoss(order)) >= 0 ? '+' : ''}
+                                                                        {calculateProfitLoss(order)}%
+                                                                    </span>
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 
                                                 <div className="order-actions">
