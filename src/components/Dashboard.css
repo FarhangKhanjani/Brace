@@ -331,6 +331,7 @@
 
 .dashboard-actions {
   display: flex;
+  align-items: center;
   gap: 1rem;
 }
 
@@ -538,4 +539,23 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.settings-btn:hover {
+  color: #00dac6;
+  background-color: rgba(0, 218, 198, 0.1);
 }

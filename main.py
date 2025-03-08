@@ -222,7 +222,7 @@ async def login(email: str = Form(...), password: str = Form(...)):
                 }
             }
         
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Email or password is incorrect")
         
     except Exception as e:
         print(f"Login error: {str(e)}")

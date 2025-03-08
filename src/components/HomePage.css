@@ -1,0 +1,102 @@
+.homepage-container {
+    min-height: calc(100vh - 70px);
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #111021;
+}
+
+.homepage-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    gap: 3rem;
+}
+
+.homepage-text {
+    flex: 1;
+}
+
+.homepage-text h1 {
+    font-size: 3rem;
+    color: white;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(45deg, #00dac6, #7b68ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.homepage-text p {
+    font-size: 1.2rem;
+    color: #ddd;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.homepage-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.homepage-image img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 218, 198, 0.3);
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.cta-button {
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.cta-button.primary {
+    background-color: #00dac6;
+    color: #111021;
+}
+
+.cta-button.primary:hover {
+    background-color: #00c4b4;
+    transform: translateY(-3px);
+}
+
+.cta-button.secondary {
+    background-color: transparent;
+    color: #00dac6;
+    border: 2px solid #00dac6;
+}
+
+.cta-button.secondary:hover {
+    background-color: rgba(0, 218, 198, 0.1);
+    transform: translateY(-3px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .homepage-content {
+        flex-direction: column-reverse;
+        text-align: center;
+    }
+    
+    .homepage-text h1 {
+        font-size: 2.2rem;
+    }
+    
+    .cta-buttons {
+        justify-content: center;
+    }
+} 

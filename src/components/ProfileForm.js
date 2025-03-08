@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { IoMdClose } from 'react-icons/io';
 import './ProfileForm.css';
 
-const ProfileForm = ({ onClose, onProfileUpdated }) => {
+const ProfileForm = ({ onClose, onProfileUpdated, isEmbedded = false }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState({
@@ -112,18 +112,15 @@ const ProfileForm = ({ onClose, onProfileUpdated }) => {
     };
 
     return (
-        <div className="profile-form-container">
-            <div className="form-header">
-                <h2>Update Your Profile</h2>
-                <button 
-                    type="button" 
-                    className="close-btn" 
-                    onClick={onClose}
-                    aria-label="Close"
-                >
-                    <IoMdClose />
-                </button>
-            </div>
+        <div className={`profile-form-container ${isEmbedded ? 'embedded' : ''}`}>
+            {!isEmbedded && (
+                <div className="form-header">
+                    <h2>Edit Profile</h2>
+                    <button className="close-btn" onClick={onClose}>
+                        <IoMdClose />
+                    </button>
+                </div>
+            )}
             
             {loading ? (
                 <div className="loading-message">Loading your profile information...</div>

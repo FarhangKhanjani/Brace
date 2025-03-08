@@ -12,6 +12,7 @@
   border-radius: 10px;
   width: 100%;
   max-width: 400px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .signup-box h2 {
@@ -21,60 +22,132 @@
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
   color: white;
+  font-size: 0.9rem;
 }
 
 .form-group input {
   width: 100%;
   padding: 0.8rem;
-  border: 1px solid #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 5px;
-  background-color: #13111c;
+  background-color: rgba(30, 27, 46, 0.7);
   color: white;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #00dac6;
 }
 
 .signup-submit-btn {
   width: 100%;
   padding: 0.8rem;
   background-color: #00dac6;
-  color: black;
+  color: #1e1b2e;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
   margin-top: 1rem;
+  transition: background-color 0.2s, transform 0.2s;
+  font-size: 1rem;
 }
 
 .signup-submit-btn:hover {
   background-color: #00c4b4;
+  transform: translateY(-2px);
+}
+
+.signup-submit-btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .error-message {
-  background-color: #ff44445e;
-  color: #ff9999;
-  padding: 0.8rem;
-  border-radius: 5px;
-  margin-bottom: 1rem;
-  text-align: center;
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  border-left: 3px solid #f44336;
 }
 
 .login-link {
   text-align: center;
-  margin-top: 1rem;
-  color: white;
+  margin-top: 1.5rem;
+  color: #aaa;
+  font-size: 0.9rem;
 }
 
 .login-link a {
   color: #00dac6;
   text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
 }
 
 .login-link a:hover {
+  color: #00c4b4;
   text-decoration: underline;
+}
+
+/* Password requirements styling */
+.password-requirements {
+  margin-top: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 0.75rem;
+  border-left: 3px solid #00dac6;
+}
+
+.password-requirements h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #eee;
+}
+
+.password-requirements ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.password-requirements li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #aaa;
+  font-size: 0.85rem;
+  transition: color 0.2s ease;
+}
+
+.password-requirements li:last-child {
+  margin-bottom: 0;
+}
+
+.password-requirements li:before {
+  content: '○';
+  position: absolute;
+  left: 0;
+  color: #aaa;
+}
+
+.password-requirements li.met {
+  color: #00dac6;
+}
+
+.password-requirements li.met:before {
+  content: '●';
+  color: #00dac6;
 }

@@ -7,24 +7,26 @@ import { v4 as uuidv4 } from 'uuid';
 import ProfileForm from './ProfileForm';
 import { FaPlus, FaUserEdit, FaSync } from 'react-icons/fa';
 import Notifications from './Notifications';
+import { IoSettingsSharp } from 'react-icons/io5';
+import Settings from './Settings';
 
 const Dashboard = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-  const [showOrderForm, setShowOrderForm] = useState(false);
+    const [showOrderForm, setShowOrderForm] = useState(false);
     const [userName, setUserName] = useState('');
     const [error, setError] = useState(null);
     const [debugInfo, setDebugInfo] = useState('');
     const [editingOrder, setEditingOrder] = useState(null);
     const [editFormData, setEditFormData] = useState({
-    stop_loss: '',
-    take_profit: ''
-  });
+        stop_loss: '',
+        take_profit: ''
+    });
     const [orderPrices, setOrderPrices] = useState({});
     const [loadingPrices, setLoadingPrices] = useState(false);
     const [activeTab, setActiveTab] = useState('orders'); // 'orders' or 'history'
     const [orderHistory, setOrderHistory] = useState([]);
-    const [showProfileForm, setShowProfileForm] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
 
     // Format date
     const formatDate = (dateString) => {
@@ -40,7 +42,7 @@ const Dashboard = () => {
     };
 
     // Get user name and fetch orders on component mount
-  useEffect(() => {
+    useEffect(() => {
         const getUserInfo = async () => {
             try {
                 const { data } = await supabase.auth.getUser();
@@ -56,7 +58,7 @@ const Dashboard = () => {
                     // Use nickname if available, otherwise use email prefix
                     if (profileData && profileData.nickname) {
                         setUserName(profileData.nickname);
-    } else {
+                    } else {
                         const email = data.user.email || '';
                         setUserName(email.split('@')[0]);
                     }
@@ -161,8 +163,8 @@ const Dashboard = () => {
         setEditFormData({
             stop_loss: order.stop_loss,
             take_profit: order.take_profit
-    });
-  };
+        });
+    };
 
     // Add the handleSaveEdit function
     const handleSaveEdit = async () => {
@@ -435,25 +437,32 @@ const Dashboard = () => {
         // Refresh any other user data if needed
     };
 
-  return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
+    return (
+        <div className="dashboard-container">
+            <div className="dashboard-header">
                 <div className="welcome-message">
                     <h1>Welcome, {userName}!</h1>
                 </div>
                 <div className="dashboard-actions">
                     <Notifications />
                     <button 
-                        className="action-button profile-button"
-                        onClick={() => setShowProfileForm(true)}
+                        className="action-button"
+                        onClick={() => setShowOrderForm(true)}
                     >
-                        <FaUserEdit /> Edit Profile
+                        <FaPlus /> New Order
                     </button>
                     <button 
                         className="action-button refresh-button" 
                         onClick={fetchOrders}
                     >
                         <FaSync /> Refresh Orders
+                    </button>
+                    <button 
+                        className="settings-btn"
+                        onClick={() => setShowSettings(true)}
+                        title="Settings"
+                    >
+                        <IoSettingsSharp />
                     </button>
                 </div>
             </div>
@@ -487,12 +496,6 @@ const Dashboard = () => {
             {/* Action Buttons */}
             <div className="orders-header">
                 <h2>Your Orders</h2>
-                <button 
-                    className="action-button add-order-button"
-                    onClick={() => setShowOrderForm(true)}
-                >
-                    <FaPlus /> Add New Order
-                </button>
             </div>
             
             {/* Content based on active tab */}
@@ -528,26 +531,26 @@ const Dashboard = () => {
                                         {editingOrder && editingOrder.id === order.id ? (
                                             // Edit mode
                                             <div className="order-edit-form">
-                <div className="form-group">
+                                                <div className="form-group">
                                                     <label>Stop Loss ($)</label>
-                  <input
-                    type="number"
-                    name="stop_loss"
+                                                    <input
+                                                        type="number"
+                                                        name="stop_loss"
                                                         value={editFormData.stop_loss}
                                                         onChange={handleEditInputChange}
                                                         step="0.01"
-                  />
-                </div>
-                <div className="form-group">
+                                                    />
+                                                </div>
+                                                <div className="form-group">
                                                     <label>Take Profit ($)</label>
-                  <input
-                    type="number"
-                    name="take_profit"
+                                                    <input
+                                                        type="number"
+                                                        name="take_profit"
                                                         value={editFormData.take_profit}
                                                         onChange={handleEditInputChange}
                                                         step="0.01"
-                  />
-                </div>
+                                                    />
+                                                </div>
                                                 <div className="edit-actions">
                                                     <button 
                                                         className="save-btn" 
@@ -555,13 +558,13 @@ const Dashboard = () => {
                                                     >
                                                         Save
                                                     </button>
-                  <button 
-                    className="cancel-btn"
+                                                    <button 
+                                                        className="cancel-btn"
                                                         onClick={() => setEditingOrder(null)}
-                  >
-                    Cancel
-                  </button>
-                </div>
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : (
                                             // View mode
@@ -694,22 +697,13 @@ const Dashboard = () => {
                                                     <span className="date-value">{formatDate(order.closed_at)}</span>
                                                 </div>
                                             </div>
-            </div>
+                                        </div>
                                     </div>
                                 ))}
-          </div>
-        )}
-      </div>
+                            </div>
+                        )}
+                    </div>
                 </>
-            )}
-
-            {showProfileForm && (
-                <div className="modal-overlay">
-                    <ProfileForm 
-                        onClose={() => setShowProfileForm(false)}
-                        onProfileUpdated={handleProfileUpdated}
-                    />
-                </div>
             )}
 
             {showOrderForm && (
@@ -723,8 +717,12 @@ const Dashboard = () => {
                     />
                 </div>
             )}
-    </div>
-  );
+
+            {showSettings && (
+                <Settings onClose={() => setShowSettings(false)} />
+            )}
+        </div>
+    );
 };
 
 export default Dashboard; 
