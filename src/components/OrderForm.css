@@ -395,4 +395,92 @@ select.form-input {
 .market-type-btn.active {
   background-color: #00dac6;
   color: #1e1b2e;
+}
+
+/* Add this to your OrderForm.css file */
+.helper-instruction {
+  color: #f44336;
+  font-size: 0.8rem;
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
+
+/* Rest of your OrderForm styling */
+
+/* Add these responsive styles to your OrderForm.css file */
+
+/* Make the form responsive for tablets and smaller devices */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 90%;
+    max-width: 500px;
+    padding: 1.5rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-group label {
+    margin-bottom: 0.3rem;
+  }
+  
+  .position-buttons {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .position-button {
+    flex: 1;
+    padding: 0.7rem 0;
+  }
+}
+
+/* Even smaller screens like mobile phones */
+@media (max-width: 480px) {
+  .modal-content {
+    width: 95%;
+    padding: 1rem;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .form-input, 
+  .form-select,
+  .position-button,
+  .create-order-button {
+    font-size: 0.9rem;
+    padding: 0.6rem;
+  }
+  
+  /* Make sure buttons are easy to tap on mobile */
+  .create-order-button {
+    padding: 0.8rem;
+    margin-top: 1rem;
+  }
+  
+  /* Improve form field spacing */
+  .form-group:last-of-type {
+    margin-bottom: 1rem;
+  }
+  
+  /* Make the form scroll if it gets too long on very small screens */
+  .modal-container {
+    max-height: 90vh;
+  }
+  
+  .modal-content {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}
+
+/* Fix the helper instructions for all devices */
+.helper-instruction {
+  color: #f44336;
+  font-size: 0.8rem;
+  font-weight: normal;
+  margin-left: 0.5rem;
 } 

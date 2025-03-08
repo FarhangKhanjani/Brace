@@ -201,155 +201,137 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
     };
     
     return (
-        <div className="order-form-container">
-            <div className="form-header">
-                <h2>Create New Order</h2>
-                <button 
-                    type="button" 
-                    className="close-btn" 
-                    onClick={onClose}
-                    aria-label="Close"
-                >
-                    <IoMdClose />
-                </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="order-form">
-                <div className="form-group">
-                    <label>Market Type</label>
-                    <div className="market-type-selector">
-                        <button
-                            type="button"
-                            className={`market-btn ${marketType === 'crypto' ? 'active' : ''}`}
-                            onClick={() => setMarketType('crypto')}
-                        >
-                            Cryptocurrency
-                        </button>
-                        <button
-                            type="button"
-                            className={`market-btn ${marketType === 'forex' ? 'active' : ''}`}
-                            onClick={() => setMarketType('forex')}
-                        >
-                            Forex
-                        </button>
-                    </div>
+        <div className="order-form-overlay">
+            <div className="order-form-container">
+                <div className="form-header">
+                    <h2>Create New Order</h2>
+                    <button className="close-btn" onClick={onClose}>
+                        <IoMdClose />
+                    </button>
                 </div>
                 
-                <div className="form-group">
-                    <label htmlFor="symbol">Symbol</label>
-                    <select
-                        id="symbol"
-                        className="form-input"
-                        value={symbol}
-                        onChange={(e) => setSymbol(e.target.value)}
-                        required
+                <form onSubmit={handleSubmit} className="order-form">
+                    <div className="form-group">
+                        <label>Market Type</label>
+                        <div className="market-type-selector">
+                            <button
+                                className={`market-btn ${marketType === 'crypto' ? 'active' : ''}`}
+                                onClick={() => setMarketType('crypto')}
+                            >
+                                Cryptocurrency
+                            </button>
+                            <button
+                                className={`market-btn ${marketType === 'forex' ? 'active' : ''}`}
+                                onClick={() => setMarketType('forex')}
+                            >
+                                Forex
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="form-group">
+                        <label htmlFor="symbol">Symbol</label>
+                        <select
+                            id="symbol"
+                            className="form-input"
+                            value={symbol}
+                            onChange={(e) => setSymbol(e.target.value)}
+                            required
+                        >
+                            <option value="">Select a {marketType === 'crypto' ? 'cryptocurrency' : 'forex pair'}</option>
+                            {marketType === 'crypto' ? (
+                                popularSymbols.map(sym => (
+                                    <option key={sym} value={sym}>{sym}</option>
+                                ))
+                            ) : (
+                                forexPairs.map(pair => (
+                                    <option key={pair} value={pair}>{pair}</option>
+                                ))
+                            )}
+                        </select>
+                    </div>
+                    
+                    {/* Current Price Display */}
+                    {fetchingPrice ? (
+                        <div className="current-price-display loading">
+                            <span className="price-label">Current Price:</span>
+                            <span className="price-value">Loading...</span>
+                        </div>
+                    ) : currentPrice ? (
+                        <div className="current-price-display">
+                            <span className="price-label">Current Price:</span>
+                            <span className="price-value">${currentPrice.toFixed(2)}</span>
+                        </div>
+                    ) : null}
+                    
+                    <div className="form-group">
+                        <label>Position Type</label>
+                        <div className="position-type-selector">
+                            <button
+                                type="button"
+                                className={`position-btn ${positionType === 'LONG' ? 'active' : ''}`}
+                                onClick={() => setPositionType('LONG')}
+                            >
+                                LONG
+                            </button>
+                            <button
+                                type="button"
+                                className={`position-btn ${positionType === 'SHORT' ? 'active' : ''}`}
+                                onClick={() => setPositionType('SHORT')}
+                            >
+                                SHORT
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Entry Price</label>
+                        <input
+                            type="number"
+                            className="form-input"
+                            value={entryPrice}
+                            onChange={(e) => setEntryPrice(e.target.value)}
+                            placeholder="Enter your entry price"
+                            step="0.00000001"
+                            min="0"
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Stop Loss <span className="helper-instruction">Must be lower than entry</span></label>
+                        <input
+                            type="number"
+                            className="form-input"
+                            value={stopLoss}
+                            onChange={(e) => setStopLoss(e.target.value)}
+                            placeholder="Enter your stop loss"
+                            step="0.00000001"
+                            min="0"
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Take Profit <span className="helper-instruction">Must be higher than entry</span></label>
+                        <input
+                            type="number"
+                            className="form-input"
+                            value={takeProfit}
+                            onChange={(e) => setTakeProfit(e.target.value)}
+                            placeholder="Enter your take profit"
+                            step="0.00000001"
+                            min="0"
+                        />
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        className="submit-btn"
+                        disabled={loading || isSubmitting}
                     >
-                        <option value="">Select a {marketType === 'crypto' ? 'cryptocurrency' : 'forex pair'}</option>
-                        {marketType === 'crypto' ? (
-                            popularSymbols.map(sym => (
-                                <option key={sym} value={sym}>{sym}</option>
-                            ))
-                        ) : (
-                            forexPairs.map(pair => (
-                                <option key={pair} value={pair}>{pair}</option>
-                            ))
-                        )}
-                    </select>
-                </div>
-                
-                {/* Current Price Display */}
-                {fetchingPrice ? (
-                    <div className="current-price-display loading">
-                        <span className="price-label">Current Price:</span>
-                        <span className="price-value">Loading...</span>
-                    </div>
-                ) : currentPrice ? (
-                    <div className="current-price-display">
-                        <span className="price-label">Current Price:</span>
-                        <span className="price-value">${currentPrice.toFixed(2)}</span>
-                    </div>
-                ) : null}
-                
-                <div className="form-group">
-                    <label>Position Type</label>
-                    <div className="position-type-selector">
-                        <button
-                            type="button"
-                            className={`position-btn ${positionType === 'LONG' ? 'active' : ''}`}
-                            onClick={() => setPositionType('LONG')}
-                        >
-                            LONG
-                        </button>
-                        <button
-                            type="button"
-                            className={`position-btn ${positionType === 'SHORT' ? 'active' : ''}`}
-                            onClick={() => setPositionType('SHORT')}
-                        >
-                            SHORT
-                        </button>
-                    </div>
-                </div>
-                
-                <div className="form-group">
-                    <label htmlFor="entryPrice">Entry Price ($)</label>
-                    <input
-                        id="entryPrice"
-                        type="number"
-                        value={entryPrice}
-                        onChange={(e) => setEntryPrice(e.target.value)}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        required
-                    />
-                </div>
-                
-                <div className="form-group">
-                    <label htmlFor="stopLoss">
-                        Stop Loss ($)
-                        <span className="helper-text">
-                            {positionType === 'LONG' ? ' Must be lower than entry' : ' Must be higher than entry'}
-                        </span>
-                    </label>
-                    <input
-                        id="stopLoss"
-                        type="number"
-                        value={stopLoss}
-                        onChange={(e) => setStopLoss(e.target.value)}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        required
-                    />
-                </div>
-                
-                <div className="form-group">
-                    <label htmlFor="takeProfit">
-                        Take Profit ($)
-                        <span className="helper-text">
-                            {positionType === 'LONG' ? ' Must be higher than entry' : ' Must be lower than entry'}
-                        </span>
-                    </label>
-                    <input
-                        id="takeProfit"
-                        type="number"
-                        value={takeProfit}
-                        onChange={(e) => setTakeProfit(e.target.value)}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        required
-                    />
-                </div>
-                
-                <button 
-                    type="submit" 
-                    className="submit-btn"
-                    disabled={loading || isSubmitting}
-                >
-                    {loading ? 'Creating...' : 'Create Order'}
-                </button>
-            </form>
+                        {loading ? 'Creating...' : 'Create Order'}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 };
