@@ -25,6 +25,7 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
     const [fetchingPrice, setFetchingPrice] = useState(false);
     const [marketType, setMarketType] = useState('crypto'); // Default to crypto
     const [forexPairs, setForexPairs] = useState([]);
+    const [isPublic, setIsPublic] = useState(true); // Default to true
 
     // Fetch forex pairs when market type is forex
     useEffect(() => {
@@ -154,7 +155,7 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
                 return;
             }
             
-            // Create the order in the database with market_type
+            // Create the order in the database with market_type and is_public
             const { data, error } = await supabase
                 .from('orders')
                 .insert([
@@ -167,6 +168,7 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
                         position_type: positionType,
                         market_type: marketType,
                         status: 'open',
+                        is_public: isPublic,
                         created_at: new Date().toISOString()
                     }
                 ])
@@ -321,6 +323,21 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
                             step="0.00000001"
                             min="0"
                         />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label className="toggle-container">
+                            <span className="toggle-label">Share with Community:</span>
+                            <div className="toggle-switch">
+                                <input 
+                                    type="checkbox" 
+                                    checked={isPublic}
+                                    onChange={() => setIsPublic(!isPublic)}
+                                />
+                                <span className="toggle-slider"></span>
+                            </div>
+                        </label>
+                        <p className="toggle-help">When enabled, other users can see your trade</p>
                     </div>
                     
                     <button 

@@ -30,18 +30,23 @@ const CommunityTrades = () => {
                 throw new Error('User not authenticated');
             }
             
+            console.log("Current user ID:", user.id); // Debug current user
+            
             // Fetch community trades - orders shared by other users
             const { data, error } = await supabase
                 .from('orders')
                 .select('*, profiles(username)')
                 .eq('is_public', true)
-                .neq('user_id', user.id) // Only get orders from other users
+                //.neq('user_id', user.id) // Temporarily comment this to see ALL orders
                 .order('created_at', { ascending: false });
                 
             if (error) throw error;
             
+            console.log("All public orders:", data); // Debug all retrieved orders
+            
             // Add price data to each order
             const ordersWithPrices = await addPricesToOrders(data);
+            console.log("Orders with prices:", ordersWithPrices); // Debug final data
             setActiveOrders(ordersWithPrices);
         } catch (err) {
             console.error('Error fetching community trades:', err);
@@ -98,36 +103,62 @@ const CommunityTrades = () => {
         }
     };
     
-    // Add this function to fetch prices for the orders
+    // Improved addPricesToOrders function
     const addPricesToOrders = async (orders) => {
         try {
+            if (!orders || orders.length === 0) {
+                console.log("No orders to process");
+                return [];
+            }
+
             // Get current prices for all symbols
             const { data: prices, error } = await supabase
                 .from('prices')
                 .select('*');
                 
-            if (error) throw error;
+            if (error) {
+                console.error("Error fetching prices:", error);
+                throw error;
+            }
+            
+            console.log("Fetched prices:", prices); // Debug prices
             
             // Create a map of prices by symbol
             const priceMap = {};
-            prices.forEach(price => {
-                priceMap[price.symbol] = price.current_price;
-            });
+            if (prices && prices.length > 0) {
+                prices.forEach(price => {
+                    if (price && price.symbol) {
+                        priceMap[price.symbol] = price.current_price;
+                    }
+                });
+            }
+            
+            console.log("Price map:", priceMap); // Debug price map
             
             // Add current price to each order
             return orders.map(order => {
-                const symbol = order.market_type === 'crypto' 
-                    ? `crypto_${order.symbol.replace('USDT', '')}`
-                    : `forex_${order.symbol}`;
-                    
+                if (!order) return null;
+                
+                let symbol;
+                try {
+                    symbol = order.market_type === 'crypto' 
+                        ? `crypto_${order.symbol.replace('USDT', '')}`
+                        : `forex_${order.symbol}`;
+                } catch (e) {
+                    console.error("Error parsing symbol:", e, order);
+                    symbol = '';
+                }
+                
+                const currentPrice = priceMap[symbol] || null;
+                
                 return {
                     ...order,
-                    current_price: priceMap[symbol] || order.entry_price
+                    current_price: currentPrice
                 };
-            });
-        } catch (error) {
-            console.error('Error adding prices to orders:', error);
-            return orders; // Return original orders if error
+            }).filter(Boolean); // Remove any null entries
+        } catch (err) {
+            console.error("Error in addPricesToOrders:", err);
+            return orders; // Return original orders on error
         }
     };
     

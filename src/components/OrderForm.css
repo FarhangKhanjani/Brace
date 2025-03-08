@@ -487,7 +487,7 @@ select.form-input {
 
 /* Add or update these styles in your OrderForm.css file */
 
-/* Make the modal scrollable on mobile devices */
+/* Adaptive OrderForm CSS - no scrolling approach */
 .modal-container {
   position: fixed;
   top: 0;
@@ -495,57 +495,168 @@ select.form-input {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
-  overflow-y: auto; /* Enable vertical scrolling */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  justify-content: center;
+  padding: 0;
 }
 
 .modal-content {
   background-color: #1e1b2e;
   border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 500px;
-  max-height: 90%; /* Limit height on mobile */
-  overflow-y: auto; /* Enable scrolling inside the modal */
-  padding: 1.5rem;
+  padding: 20px;
   position: relative;
-  margin: 20px 0; /* Add margin to allow scrolling */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-height: 90vh; /* Limit height */
+  transform: scale(0.95); /* Slightly scale down to fit more content */
 }
 
-/* Mobile-specific adjustments */
-@media (max-width: 480px) {
-  .modal-container {
-    align-items: flex-start; /* Align to top instead of center */
-    padding: 20px 0; /* Add padding to ensure modal doesn't touch edges */
-  }
-  
+/* Size adaptations for different screens */
+@media (max-height: 700px) {
   .modal-content {
-    padding: 1rem;
-    width: 95%;
-    margin: 10px auto;
+    transform: scale(0.9);
+    padding: 15px;
   }
   
-  /* Reduce spacing between elements */
   .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 10px;
   }
   
-  /* Make sure all inputs are properly sized */
-  .form-input, 
-  .form-select {
-    padding: 0.7rem;
-    font-size: 16px; /* Prevent iOS zoom on focus */
+  .form-input, .form-select {
+    padding: 8px;
+    margin-bottom: 8px;
   }
   
-  /* Create Order button - ensure visibility */
   .create-order-button {
-    padding: 0.8rem;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
+    padding: 10px;
+    margin-top: 15px;
   }
+}
+
+@media (max-height: 600px) {
+  .modal-content {
+    transform: scale(0.85);
+    padding: 12px;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+  }
+  
+  .form-input, .form-select {
+    padding: 7px;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+}
+
+@media (max-height: 500px) {
+  .modal-content {
+    transform: scale(0.8);
+  }
+}
+
+/* Ensure form elements are properly visible */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: white;
+  font-weight: 500;
+}
+
+/* Make form inputs easier to tap */
+.form-input, 
+.form-select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+/* Position button at bottom */
+.create-order-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 5px;
+  background-color: #00dac6;
+  color: #1e1b2e;
+  border: none;
+  font-weight: bold;
+  margin-top: 15px;
+  cursor: pointer;
+}
+
+/* Toggle switch styling */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.toggle-label {
+  color: white;
+  font-size: 0.9rem;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #00dac6;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.toggle-help {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 5px;
+  margin-bottom: 10px;
 } 
