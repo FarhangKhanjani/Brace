@@ -66,13 +66,29 @@ const OrderTracker = ({ order, onDelete, onEdit, onClose }) => {
     const [timeRange, setTimeRange] = useState('10min'); // '10min', 'daily', 'weekly'
     const [dailyPriceHistory, setDailyPriceHistory] = useState([]);
     
+    // Add proper null checks when accessing symbol properties
+    const getSymbol = (order) => {
+        if (!order || !order.crypto_symbol) {
+            return 'Unknown';
+        }
+        return order.crypto_symbol.toUpperCase();
+    };
+    
+    // Add proper null checks in your render functions
+    const renderChartTitle = (order) => {
+        if (!order || !order.crypto_symbol) {
+            return 'Trading Position';
+        }
+        return `${order.crypto_symbol.toUpperCase()} Position`;
+    };
+    
     // Update the chart title based on time range
     const getChartTitle = () => {
         switch(timeRange) {
             case 'daily':
-                return `${order.symbol} Price (Daily)`;
+                return `${getSymbol(order)} Price (Daily)`;
             default:
-                return `${order.symbol} Price (10-min intervals)`;
+                return `${getSymbol(order)} Price (10-min intervals)`;
         }
     };
     
@@ -481,14 +497,14 @@ const OrderTracker = ({ order, onDelete, onEdit, onClose }) => {
                 <>
                     <div className="tracker-header">
                         <div className="tracker-title">
-                            {cryptoLogos[order.symbol] && (
+                            {cryptoLogos[getSymbol(order)] && (
                                 <img 
-                                    src={cryptoLogos[order.symbol]} 
-                                    alt={`${order.symbol} logo`} 
+                                    src={cryptoLogos[getSymbol(order)]} 
+                                    alt={`${getSymbol(order)} logo`} 
                                     className="crypto-logo" 
                                 />
                             )}
-                            <h2>{order.symbol}</h2>
+                            <h2>{getSymbol(order)}</h2>
                             <div className={`position-badge ${order.position_type || 'long'}`}>
                                 {order.position_type || 'LONG'}
                             </div>

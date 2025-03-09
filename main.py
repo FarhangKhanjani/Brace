@@ -1,14 +1,16 @@
-from fastapi import FastAPI, Request, HTTPException, Depends, Form
+from fastapi import FastAPI, Request, HTTPException, Depends, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import requests
 import uuid
+import stripe
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # Load environment variables
 load_dotenv()
@@ -111,6 +113,10 @@ async def startup_db_client():
     except Exception as e:
         print(f"ERROR: Database connection failed: {str(e)}")
 
+# Initialize Stripe
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+
 # Models
 class UserCreate(BaseModel):
     email: str
@@ -132,8 +138,22 @@ class OrderResponse(BaseModel):
     stop_loss: float
     take_profit: float
     created_at: datetime
-        
-    
+
+class SubscriptionRequest(BaseModel):
+    plan_id: str
+    billing_cycle: str = "monthly"  # "monthly" or "yearly"
+
+class SubscriptionResponse(BaseModel):
+    checkout_url: str
+
+class SubscriptionStatus(BaseModel):
+    id: str
+    status: str
+    plan: Dict[str, Any]
+    current_period_start: datetime
+    current_period_end: datetime
+    cancel_at_period_end: bool
+
 @app.get("/", tags=["home"])
 async def home():
     """
@@ -163,7 +183,6 @@ async def test_db():
     except Exception as e:
         print(f"Database error: {str(e)}")  # Debug print
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
 
 @app.post("/signup", tags=["auth"])
 async def signup(user: UserCreate):
@@ -765,6 +784,270 @@ async def get_order_history(user_id: str):
     except Exception as e:
         print(f"Error fetching order history: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Add subscription endpoints
+@app.post("/api/subscriptions", response_model=SubscriptionResponse, tags=["subscriptions"])
+async def create_subscription(subscription_req: SubscriptionRequest, user = Depends(get_current_user)):
+    """Create a subscription checkout session for the user"""
+    try:
+        # Get the plan details from database
+        plan = await get_subscription_plan(subscription_req.plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Subscription plan not found")
+        
+        # Get existing customer or create a new one
+        stripe_customer = await get_or_create_stripe_customer(user)
+        
+        # Get the appropriate price ID based on billing cycle
+        price_id = plan["stripe_price_id_monthly"] if subscription_req.billing_cycle == "monthly" else plan["stripe_price_id_yearly"]
+        
+        # Create checkout session
+        session = stripe.checkout.Session.create(
+            customer=stripe_customer,
+            payment_method_types=["card"],
+            line_items=[{
+                "price": price_id,
+                "quantity": 1,
+            }],
+            mode="subscription",
+            success_url=f"{os.environ.get('FRONTEND_URL')}/subscription/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{os.environ.get('FRONTEND_URL')}/subscription/canceled",
+            metadata={
+                "user_id": user.id,
+                "plan_id": subscription_req.plan_id,
+                "billing_cycle": subscription_req.billing_cycle
+            }
+        )
+        
+        return {"checkout_url": session.url}
+        
+    except Exception as e:
+        print(f"Error creating subscription: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/subscriptions/status", tags=["subscriptions"])
+async def get_subscription_status(user = Depends(get_current_user)):
+    """Get the current subscription status for the user"""
+    try:
+        # Query user's subscription from database
+        result = await supabase.table("subscriptions").select("*").eq("user_id", user.id).execute()
+        
+        if not result.data:
+            return {
+                "status": "none",
+                "plan": None,
+                "current_period_end": None,
+                "cancel_at_period_end": False
+            }
+        
+        subscription = result.data[0]
+        
+        # Get plan details
+        plan = await get_subscription_plan(subscription["plan_id"])
+        
+        return {
+            "status": subscription["status"],
+            "plan": plan,
+            "current_period_end": subscription["current_period_end"],
+            "cancel_at_period_end": subscription["cancel_at_period_end"]
+        }
+    
+    except Exception as e:
+        print(f"Error getting subscription status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/subscriptions/cancel", tags=["subscriptions"])
+async def cancel_subscription(user = Depends(get_current_user)):
+    """Cancel the user's subscription at the end of the current period"""
+    try:
+        # Get user's subscription
+        result = await supabase.table("subscriptions").select("*").eq("user_id", user.id).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="No active subscription found")
+        
+        subscription = result.data[0]
+        
+        # Cancel subscription in Stripe
+        stripe.Subscription.modify(
+            subscription["stripe_subscription_id"],
+            cancel_at_period_end=True
+        )
+        
+        # Update in database
+        await supabase.table("subscriptions").update({
+            "cancel_at_period_end": True
+        }).eq("id", subscription["id"]).execute()
+        
+        return {"message": "Subscription will be canceled at the end of the current billing period"}
+    
+    except Exception as e:
+        print(f"Error canceling subscription: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Webhook handler for Stripe events
+@app.post("/api/webhooks/stripe")
+async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
+    """Handle Stripe webhook events"""
+    payload = await request.body()
+    sig_header = request.headers.get("Stripe-Signature")
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    
+    # Handle specific events
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        background_tasks.add_task(handle_completed_checkout, session)
+    
+    elif event["type"] == "invoice.paid":
+        invoice = event["data"]["object"]
+        background_tasks.add_task(handle_invoice_paid, invoice)
+    
+    elif event["type"] == "customer.subscription.updated":
+        subscription = event["data"]["object"]
+        background_tasks.add_task(handle_subscription_updated, subscription)
+    
+    elif event["type"] == "customer.subscription.deleted":
+        subscription = event["data"]["object"]
+        background_tasks.add_task(handle_subscription_deleted, subscription)
+    
+    return {"status": "success"}
+
+# Helper functions
+async def get_subscription_plan(plan_id: str):
+    """Get plan details from database"""
+    result = await supabase.table("subscription_plans").select("*").eq("id", plan_id).execute()
+    if result.data:
+        return result.data[0]
+    return None
+
+async def get_or_create_stripe_customer(user):
+    """Get existing Stripe customer ID or create a new one"""
+    # Check if user already has a Stripe customer ID
+    result = await supabase.table("users").select("stripe_customer_id").eq("id", user.id).execute()
+    
+    if result.data and result.data[0]["stripe_customer_id"]:
+        return result.data[0]["stripe_customer_id"]
+    
+    # Create new customer
+    customer = stripe.Customer.create(
+        email=user.email,
+        metadata={"user_id": user.id}
+    )
+    
+    # Save to database
+    await supabase.table("users").update({
+        "stripe_customer_id": customer.id
+    }).eq("id", user.id).execute()
+    
+    return customer.id
+
+# Background tasks for webhook handling
+async def handle_completed_checkout(session):
+    """Process a completed checkout session"""
+    # Extract metadata
+    user_id = session["metadata"]["user_id"]
+    plan_id = session["metadata"]["plan_id"]
+    
+    # Get subscription from Stripe
+    subscription_id = session["subscription"]
+    subscription = stripe.Subscription.retrieve(subscription_id)
+    
+    # Save to database
+    await supabase.table("subscriptions").upsert({
+        "user_id": user_id,
+        "stripe_customer_id": session["customer"],
+        "stripe_subscription_id": subscription_id,
+        "plan_id": plan_id,
+        "status": subscription["status"],
+        "current_period_start": datetime.fromtimestamp(subscription["current_period_start"]),
+        "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
+        "cancel_at_period_end": subscription["cancel_at_period_end"]
+    }).execute()
+
+async def handle_invoice_paid(invoice):
+    """Process a paid invoice"""
+    # Save to payment history
+    await supabase.table("payment_history").insert({
+        "user_id": invoice["metadata"]["user_id"],
+        "subscription_id": invoice["subscription"],
+        "stripe_invoice_id": invoice["id"],
+        "amount": invoice["amount_paid"],
+        "currency": invoice["currency"],
+        "status": invoice["status"],
+        "payment_method": invoice["payment_method_details"]["type"] if invoice.get("payment_method_details") else None
+    }).execute()
+
+async def handle_subscription_updated(subscription):
+    """Process subscription updates"""
+    # Find the subscription in our database
+    result = await supabase.table("subscriptions").select("*").eq("stripe_subscription_id", subscription["id"]).execute()
+    
+    if not result.data:
+        return
+    
+    # Update the subscription
+    await supabase.table("subscriptions").update({
+        "status": subscription["status"],
+        "current_period_start": datetime.fromtimestamp(subscription["current_period_start"]),
+        "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
+        "cancel_at_period_end": subscription["cancel_at_period_end"],
+        "updated_at": datetime.now()
+    }).eq("stripe_subscription_id", subscription["id"]).execute()
+
+async def handle_subscription_deleted(subscription):
+    """Process subscription deletion"""
+    # Update our database
+    await supabase.table("subscriptions").update({
+        "status": "canceled",
+        "updated_at": datetime.now()
+    }).eq("stripe_subscription_id", subscription["id"]).execute()
+
+# Add this function BEFORE any endpoint that uses it
+async def get_current_user(request: Request):
+    """
+    Get the current authenticated user from the request
+    Returns a user object or raises an HTTPException if not authenticated
+    """
+    auth_header = request.headers.get("Authorization")
+    
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401, 
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    token = auth_header.split(" ")[1]
+    
+    try:
+        # Verify token with Supabase
+        response = supabase.auth.get_user(token)
+        user = response.user
+        
+        if not user:
+            raise HTTPException(
+                status_code=401, 
+                detail="Invalid authentication token",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+            
+        return user
+        
+    except Exception as e:
+        print(f"Authentication error: {str(e)}")
+        raise HTTPException(
+            status_code=401, 
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
 print(f"Current working directory: {os.getcwd()}")
 

@@ -487,7 +487,7 @@ select.form-input {
 
 /* Add or update these styles in your OrderForm.css file */
 
-/* Adaptive OrderForm CSS - no scrolling approach */
+/* Ultra simple OrderForm CSS with scrolling and tighter spacing */
 .modal-container {
   position: fixed;
   top: 0;
@@ -496,167 +496,466 @@ select.form-input {
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.7);
   z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
+  /* These two properties enable scrolling */
+  overflow-y: auto !important;
+  padding-bottom: 30px;
 }
 
 .modal-content {
   background-color: #1e1b2e;
   border-radius: 8px;
   width: 90%;
-  max-width: 500px;
-  padding: 20px;
+  max-width: 450px;
+  margin: 40px auto;
+  padding: 15px;
   position: relative;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  max-height: 90vh; /* Limit height */
-  transform: scale(0.95); /* Slightly scale down to fit more content */
 }
 
-/* Size adaptations for different screens */
-@media (max-height: 700px) {
-  .modal-content {
-    transform: scale(0.9);
-    padding: 15px;
-  }
-  
-  .form-group {
-    margin-bottom: 10px;
-  }
-  
-  .form-input, .form-select {
-    padding: 8px;
-    margin-bottom: 8px;
-  }
-  
-  .create-order-button {
-    padding: 10px;
-    margin-top: 15px;
-  }
-}
-
-@media (max-height: 600px) {
-  .modal-content {
-    transform: scale(0.85);
-    padding: 12px;
-  }
-  
-  .form-group label {
-    font-size: 0.9rem;
-    margin-bottom: 3px;
-  }
-  
-  .form-input, .form-select {
-    padding: 7px;
-    font-size: 14px;
-    margin-bottom: 6px;
-  }
-}
-
-@media (max-height: 500px) {
-  .modal-content {
-    transform: scale(0.8);
-  }
-}
-
-/* Ensure form elements are properly visible */
+/* Tighter spacing between form elements */
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 8px; /* Reduced from 15px */
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  color: white;
-  font-weight: 500;
-}
-
-/* Make form inputs easier to tap */
 .form-input, 
 .form-select {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  margin-bottom: 10px;
-  border-radius: 5px;
+  padding: 8px; 
+  margin-bottom: 5px; /* Reduced */
 }
 
-/* Position button at bottom */
+/* Make the position buttons more compact */
+.position-type-selector {
+  margin-bottom: 8px;
+}
+
+/* Make the submit button more visible and sticky */
+.submit-btn,
 .create-order-button {
   width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 5px;
   background-color: #00dac6;
   color: #1e1b2e;
+  padding: 10px;
   border: none;
+  border-radius: 5px;
   font-weight: bold;
-  margin-top: 15px;
+  margin-top: 12px;
   cursor: pointer;
 }
 
-/* Toggle switch styling */
+/* Reduce toggle space */
 .toggle-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.toggle-help {
   margin-bottom: 5px;
 }
 
-.toggle-label {
-  color: white;
-  font-size: 0.9rem;
-}
-
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  cursor: pointer;
+/* Improve the modal container */
+.modal-overlay {
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 34px;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 10px;
 }
 
-.toggle-slider:before {
+.order-form {
+  background-color: #1a1825;
+  border-radius: 10px;
+  padding: 25px;
+  width: 100%;
+  max-width: 500px;
+  min-width: 320px; /* Prevent form from getting too narrow */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  color: white;
+  position: relative;
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Fixed form elements to prevent horizontal scrolling */
+form.order-form {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+}
+
+/* Make sure inputs don't overflow */
+.form-group input,
+.form-group select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 12px 15px;
+  border-radius: 5px;
+  background-color: #262336;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure buttons fit properly */
+.market-type-selector,
+.position-type-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.market-btn,
+.position-btn {
+  width: 100%;
+  white-space: nowrap;
+}
+
+/* Fix submit button to ensure it's visible and properly sized */
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 20px;
+  background: linear-gradient(90deg, #00dac6, #7b68ee);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive styles for very small screens */
+@media (max-width: 576px) {
+  .order-form {
+    width: 95%;
+    padding: 20px 15px;
+    margin: 0 auto;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.4rem;
+  }
+  
+  /* Ensure fields stay visible on small screens */
+  .form-group label {
+    font-size: 0.9rem;
+  }
+  
+  .form-group input,
+  .form-group select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+}
+
+/* Fix the modal header/title */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+  position: sticky;
+  top: 0;
+  background-color: #1a1825;
+  z-index: 10;
+  padding-top: 5px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #00dac6;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 5px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+}
+
+.close-button:hover {
+  color: #f44336;
+}
+
+/* Mobile improvements for title visibility */
+@media (max-width: 576px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+  
+  .order-form {
+    max-height: 80vh;
+    padding: 20px 15px;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #ddd;
+}
+
+.form-group input, 
+.form-group select {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 5px;
+  background-color: #262336;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 16px;
+}
+
+.form-group select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23aaaaaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px;
+}
+
+.form-group .market-type-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.market-type-button {
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #262336;
+  color: #aaa;
+  cursor: pointer;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.market-type-button.active {
+  background-color: rgba(0, 218, 198, 0.1);
+  color: #00dac6;
+  border-color: #00dac6;
+}
+
+.position-type-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.position-button {
+  padding: 12px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: center;
+}
+
+.position-button.long {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.position-button.short {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.position-button.long.active {
+  background-color: rgba(76, 175, 80, 0.4);
+  border: 1px solid #4caf50;
+}
+
+.position-button.short.active {
+  background-color: rgba(244, 67, 54, 0.4);
+  border: 1px solid #f44336;
+}
+
+.current-price-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(0, 218, 198, 0.05);
+  padding: 12px 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  border-left: 3px solid #00dac6;
+}
+
+.price-label {
+  font-weight: 500;
+  color: #ddd;
+}
+
+.price-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #00dac6;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.cancel-button,
+.submit-button {
+  padding: 12px 0;
+  border-radius: 5px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.cancel-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+}
+
+.submit-button {
+  background: linear-gradient(90deg, #00dac6, #7b68ee);
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.submit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.form-info {
+  color: #aaa;
+  font-size: 0.85rem;
+  margin-top: 20px;
+  line-height: 1.4;
+}
+
+/* Fix for Share with Community checkbox */
+.share-community {
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+  padding: 12px 15px;
+  background-color: rgba(123, 104, 238, 0.1);
+  border-radius: 5px;
+  border-left: 3px solid #7b68ee;
+}
+
+.share-community label {
+  margin: 0 0 0 10px !important;
+  color: #ddd !important;
+  font-weight: normal !important;
+  cursor: pointer;
+}
+
+.share-community input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  background-color: #262336;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+  padding: 0 !important;
+}
+
+.share-community input[type="checkbox"]:checked {
+  background-color: #7b68ee;
+  border-color: #7b68ee;
+}
+
+.share-community input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: white;
   position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
 }
 
-input:checked + .toggle-slider {
-  background-color: #00dac6;
-}
-
-input:checked + .toggle-slider:before {
-  transform: translateX(26px);
-}
-
-.toggle-help {
+.community-note {
+  margin-top: 5px;
   font-size: 0.8rem;
   color: #aaa;
+  margin-left: 28px;
+}
+
+.validation-message {
+  color: #f44336;
+  font-size: 0.85rem;
   margin-top: 5px;
-  margin-bottom: 10px;
+}
+
+/* Add responsive styles for smaller screens */
+@media (max-width: 576px) {
+  .order-form {
+    padding: 20px 15px;
+    width: 95%;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-button, 
+  .submit-button {
+    width: 100%;
+  }
 } 

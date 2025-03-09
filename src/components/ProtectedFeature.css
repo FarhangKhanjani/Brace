@@ -1,0 +1,48 @@
+.protected-feature-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  color: #aaa;
+  font-size: 1.2rem;
+}
+
+.protected-feature-upgrade {
+  max-width: 600px;
+  margin: 3rem auto;
+  background-color: #1e1b2e;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  border-left: 4px solid #7b68ee;
+}
+
+.upgrade-message h3 {
+  color: white;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.upgrade-message p {
+  color: #ddd;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.upgrade-button {
+  display: inline-block;
+  background: linear-gradient(90deg, #00dac6, #7b68ee);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 1.1rem;
+}
+
+.upgrade-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+} 

@@ -203,13 +203,11 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
     };
     
     return (
-        <div className="order-form-overlay">
-            <div className="order-form-container">
-                <div className="form-header">
+        <div className="modal-overlay">
+            <div className="order-form">
+                <div className="modal-header">
                     <h2>Create New Order</h2>
-                    <button className="close-btn" onClick={onClose}>
-                        <IoMdClose />
-                    </button>
+                    <button className="close-button" onClick={onClose}>×</button>
                 </div>
                 
                 <form onSubmit={handleSubmit} className="order-form">
@@ -325,19 +323,17 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
                         />
                     </div>
                     
-                    <div className="form-group">
-                        <div className="toggle-container">
-                            <span className="toggle-label">Share with Community</span>
-                            <div className="toggle-switch">
-                                <input 
-                                    type="checkbox" 
-                                    checked={isPublic}
-                                    onChange={() => setIsPublic(!isPublic)}
-                                />
-                                <span className="toggle-slider"></span>
-                            </div>
-                        </div>
-                        <p className="toggle-help">When enabled, other users can see your trade</p>
+                    <div className="share-community">
+                        <input
+                            type="checkbox"
+                            id="shareCommunity"
+                            checked={isPublic}
+                            onChange={(e) => setIsPublic(e.target.checked)}
+                        />
+                        <label htmlFor="shareCommunity">Share with Community</label>
+                    </div>
+                    <div className="community-note">
+                        When enabled, other users can see your trade
                     </div>
                     
                     <button 

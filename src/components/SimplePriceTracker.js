@@ -1,125 +1,250 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Line } from 'react-chartjs-2';
 import './SimplePriceTracker.css';
+import { supabase } from '../supabase';
+import { 
+  Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement,
+  Title, 
+  Tooltip, 
+  Legend,
+  Filler
+} from 'chart.js';
 
-const SimplePriceTracker = ({ currentPrice, entryPrice, stopLoss, takeProfit, positionType = 'long' }) => {
-    // Calculate percentages for the progress bar
-    const calculatePercentages = () => {
-        const min = Math.min(entryPrice, stopLoss, takeProfit) * 0.9; // 10% below minimum
-        const max = Math.max(entryPrice, stopLoss, takeProfit) * 1.1; // 10% above maximum
-        const range = max - min;
+ChartJS.register(
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement,
+  Title, 
+  Tooltip, 
+  Legend,
+  Filler
+);
+
+const SimplePriceTracker = () => {
+  const [priceData, setPriceData] = useState({});
+  const [selectedCrypto, setSelectedCrypto] = useState('bitcoin');
+  const [loading, setLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState('24h');
+
+  useEffect(() => {
+    fetchPriceData();
+  }, [selectedCrypto, timeframe]);
+
+  const fetchPriceData = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('crypto_prices')
+        .select('*')
+        .eq('symbol', selectedCrypto)
+        .order('timestamp', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Process data according to timeframe
+        let filteredData = data;
+        const now = new Date();
         
-        // Calculate positions as percentages
-        const entryPercent = ((entryPrice - min) / range) * 100;
-        const slPercent = ((stopLoss - min) / range) * 100;
-        const tpPercent = ((takeProfit - min) / range) * 100;
-        const currentPercent = ((currentPrice - min) / range) * 100;
-        
-        return {
-            entry: entryPercent,
-            sl: slPercent,
-            tp: tpPercent,
-            current: currentPercent,
-            min,
-            max
+        if (timeframe === '24h') {
+          const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          filteredData = data.filter(item => new Date(item.timestamp) >= oneDayAgo);
+        } else if (timeframe === '7d') {
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          filteredData = data.filter(item => new Date(item.timestamp) >= sevenDaysAgo);
+        } else if (timeframe === '30d') {
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          filteredData = data.filter(item => new Date(item.timestamp) >= thirtyDaysAgo);
+        }
+
+        const formattedData = {
+          labels: filteredData.map(item => {
+            const date = new Date(item.timestamp);
+            return timeframe === '24h' 
+              ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : date.toLocaleDateString();
+          }),
+          prices: filteredData.map(item => item.price),
+          currentPrice: filteredData[filteredData.length - 1]?.price || 0,
+          priceChange: filteredData.length > 1 
+            ? (filteredData[filteredData.length - 1].price - filteredData[0].price) / filteredData[0].price * 100
+            : 0,
         };
+
+        setPriceData(formattedData);
+      } else {
+        // Set default empty data
+        setPriceData({
+          labels: [],
+          prices: [],
+          currentPrice: 0,
+          priceChange: 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching price data:', error);
+      // Set default empty data on error
+      setPriceData({
+        labels: [],
+        prices: [],
+        currentPrice: 0,
+        priceChange: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderPriceChart = () => {
+    if (loading) {
+      return <div className="loading-indicator">Loading price data...</div>;
+    }
+
+    // Safely check if we have all the data we need
+    if (!priceData || !priceData.labels || !priceData.prices || priceData.labels.length === 0) {
+      return <div className="no-data-message">No price data available</div>;
+    }
+
+    const data = {
+      labels: priceData.labels,
+      datasets: [
+        {
+          label: selectedCrypto.toUpperCase(),
+          data: priceData.prices,
+          fill: 'start',
+          backgroundColor: 'rgba(0, 218, 198, 0.1)',
+          borderColor: '#00DAC6',
+          borderWidth: 2,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#7B68EE',
+          pointHoverBorderColor: '#fff',
+        },
+      ],
     };
-    
-    const percentages = calculatePercentages();
-    
-    // Determine if we're in profit or loss
-    const isProfitable = positionType === 'long' 
-        ? currentPrice > entryPrice 
-        : currentPrice < entryPrice;
-    
-    // Calculate profit/loss percentage
-    const profitLossPercent = positionType === 'long'
-        ? ((currentPrice - entryPrice) / entryPrice * 100).toFixed(2)
-        : ((entryPrice - currentPrice) / entryPrice * 100).toFixed(2);
-    
-    return (
-        <div className="simple-tracker">
-            <div className="price-info">
-                <div className="current-price">
-                    <span className="label">Current Price:</span>
-                    <span className={`value ${isProfitable ? 'profit' : 'loss'}`}>
-                        {currentPrice.toFixed(2)}
-                    </span>
-                </div>
-                <div className={`profit-loss ${isProfitable ? 'profit' : 'loss'}`}>
-                    {isProfitable ? '+' : ''}{profitLossPercent}%
-                </div>
-            </div>
-            
-            <div className="price-bar-container">
-                <div className="price-bar">
-                    {/* Entry marker */}
-                    <div 
-                        className="price-marker entry" 
-                        style={{ left: `${percentages.entry}%` }}
-                        title={`Entry: ${entryPrice.toFixed(2)}`}
-                    >
-                        <div className="marker-label">Entry</div>
-                    </div>
-                    
-                    {/* Stop Loss marker */}
-                    <div 
-                        className="price-marker sl" 
-                        style={{ left: `${percentages.sl}%` }}
-                        title={`Stop Loss: ${stopLoss.toFixed(2)}`}
-                    >
-                        <div className="marker-label">SL</div>
-                    </div>
-                    
-                    {/* Take Profit marker */}
-                    <div 
-                        className="price-marker tp" 
-                        style={{ left: `${percentages.tp}%` }}
-                        title={`Take Profit: ${takeProfit.toFixed(2)}`}
-                    >
-                        <div className="marker-label">TP</div>
-                    </div>
-                    
-                    {/* Current price indicator */}
-                    <div 
-                        className={`current-indicator ${isProfitable ? 'profit' : 'loss'}`}
-                        style={{ left: `${percentages.current}%` }}
-                    ></div>
-                </div>
-                
-                {/* Price scale */}
-                <div className="price-scale">
-                    <span>{percentages.min.toFixed(2)}</span>
-                    <span>{percentages.max.toFixed(2)}</span>
-                </div>
-            </div>
-            
-            <div className="price-status">
-                {isProfitable ? (
-                    <div className="status profit">
-                        <i className="fa fa-arrow-up"></i> In Profit
-                    </div>
-                ) : (
-                    <div className="status loss">
-                        <i className="fa fa-arrow-down"></i> In Loss
-                    </div>
-                )}
-                
-                {positionType === 'long' ? (
-                    currentPrice >= takeProfit ? (
-                        <div className="alert tp-alert">Take Profit Reached!</div>
-                    ) : currentPrice <= stopLoss ? (
-                        <div className="alert sl-alert">Stop Loss Reached!</div>
-                    ) : null
-                ) : (
-                    currentPrice <= takeProfit ? (
-                        <div className="alert tp-alert">Take Profit Reached!</div>
-                    ) : currentPrice >= stopLoss ? (
-                        <div className="alert sl-alert">Stop Loss Reached!</div>
-                    ) : null
-                )}
-            </div>
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: '#1E1B2E',
+          titleColor: '#fff',
+          bodyColor: '#ddd',
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderWidth: 1,
+        },
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false,
+            drawBorder: false,
+          },
+          ticks: {
+            display: true,
+            color: '#aaa',
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 6,
+          },
+        },
+        y: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawBorder: false,
+          },
+          ticks: {
+            display: true,
+            color: '#aaa',
+            callback: function(value) {
+              return '$' + value.toFixed(2);
+            },
+          },
+        },
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+    };
+
+    return <Line data={data} options={options} />;
+  };
+
+  // Ensure we have a current price before trying to format it
+  const formattedPrice = priceData.currentPrice !== undefined 
+    ? `$${priceData.currentPrice.toFixed(2)}` 
+    : '$0.00';
+
+  // Ensure we have a price change before trying to format it
+  const formattedPriceChange = priceData.priceChange !== undefined 
+    ? `${priceData.priceChange > 0 ? '+' : ''}${priceData.priceChange.toFixed(2)}%` 
+    : '0.00%';
+
+  const isPriceUp = priceData.priceChange > 0;
+
+  return (
+    <div className="price-tracker-container">
+      <div className="price-tracker-header">
+        <div className="crypto-selector">
+          <select 
+            value={selectedCrypto} 
+            onChange={(e) => setSelectedCrypto(e.target.value)}
+            className="crypto-select"
+          >
+            <option value="bitcoin">Bitcoin (BTC)</option>
+            <option value="ethereum">Ethereum (ETH)</option>
+            <option value="litecoin">Litecoin (LTC)</option>
+            <option value="dogecoin">Dogecoin (DOGE)</option>
+            <option value="cardano">Cardano (ADA)</option>
+          </select>
         </div>
-    );
+        <div className="timeframe-selector">
+          <button 
+            className={`timeframe-btn ${timeframe === '24h' ? 'active' : ''}`}
+            onClick={() => setTimeframe('24h')}
+          >
+            24H
+          </button>
+          <button 
+            className={`timeframe-btn ${timeframe === '7d' ? 'active' : ''}`}
+            onClick={() => setTimeframe('7d')}
+          >
+            7D
+          </button>
+          <button 
+            className={`timeframe-btn ${timeframe === '30d' ? 'active' : ''}`}
+            onClick={() => setTimeframe('30d')}
+          >
+            30D
+          </button>
+        </div>
+      </div>
+      
+      <div className="price-display">
+        <div className="current-price">{formattedPrice}</div>
+        <div className={`price-change ${isPriceUp ? 'positive' : 'negative'}`}>
+          {formattedPriceChange}
+        </div>
+      </div>
+      
+      <div className="price-chart">
+        {renderPriceChart()}
+      </div>
+    </div>
+  );
 };
 
 export default SimplePriceTracker; 

@@ -18,7 +18,8 @@
   gap: 10px;
 }
 
-.refresh-btn, .add-order-btn {
+.refresh-btn,
+.add-order-btn {
   padding: 8px 15px;
   border: none;
   border-radius: 5px;
@@ -158,7 +159,9 @@
   color: white;
 }
 
-.loading-indicator, .error-message, .no-orders {
+.loading-indicator,
+.error-message,
+.no-orders {
   text-align: center;
   padding: 30px;
   background-color: #1e1b2e;
@@ -180,22 +183,22 @@
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .dashboard-actions {
     width: 100%;
   }
-  
+
   .orders-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .action-button {
     width: 100%;
     justify-content: center;
   }
-  
+
   .orders-grid {
     grid-template-columns: 1fr;
   }
@@ -232,7 +235,9 @@
   margin-top: 15px;
 }
 
-.save-btn, .cancel-btn, .edit-btn {
+.save-btn,
+.cancel-btn,
+.edit-btn {
   padding: 8px 12px;
   border: none;
   border-radius: 4px;
@@ -431,24 +436,28 @@
   border-radius: 8px;
 }
 
-.price-row, .date-row {
+.price-row,
+.date-row {
   display: flex;
   justify-content: space-between;
   margin-bottom: 0.5rem;
 }
 
-.price-label, .date-label {
+.price-label,
+.date-label {
   color: #aaa;
   font-size: 0.9rem;
 }
 
-.price-value, .date-value {
+.price-value,
+.date-value {
   color: #fff;
   font-weight: 500;
 }
 
 /* Loading and no-orders messages */
-.loading-message, .no-orders-message {
+.loading-message,
+.no-orders-message {
   text-align: center;
   padding: 2rem;
   color: #aaa;
@@ -460,7 +469,7 @@
   .history-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .history-details {
     grid-template-columns: 1fr;
   }
@@ -506,7 +515,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, rgba(0, 218, 198, 0.8), rgba(123, 104, 238, 0.8));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 218, 198, 0.8),
+    rgba(123, 104, 238, 0.8)
+  );
   color: white;
   border: none;
   padding: 0.6rem 1.2rem;
@@ -558,4 +571,84 @@
 .settings-btn:hover {
   color: #00dac6;
   background-color: rgba(0, 218, 198, 0.1);
+}
+
+/* Add these styles to your existing Dashboard.css file */
+
+.subscription-banner {
+  background-color: #1e1b2e;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 4px solid #7b68ee;
+}
+
+.subscription-banner h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.3rem;
+}
+
+.subscription-banner p {
+  margin: 0.5rem 0 0 0;
+  color: #aaa;
+}
+
+.subscription-banner.active {
+  border-left-color: #00dac6;
+}
+
+.plan-info {
+  flex: 1;
+}
+
+.upgrade-btn,
+.manage-btn {
+  display: inline-block;
+  padding: 0.7rem 1.5rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  min-width: 140px;
+  text-align: center;
+}
+
+.upgrade-btn {
+  background: linear-gradient(90deg, #00dac6, #7b68ee);
+  color: white;
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.manage-btn {
+  background-color: rgba(0, 218, 198, 0.1);
+  color: #00dac6;
+  margin-left: 1rem;
+}
+
+.manage-btn:hover {
+  background-color: rgba(0, 218, 198, 0.2);
+}
+
+@media (max-width: 768px) {
+  .subscription-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .plan-info {
+    margin-bottom: 1rem;
+  }
+
+  .manage-btn {
+    margin-left: 0;
+    margin-top: 1rem;
+  }
 }

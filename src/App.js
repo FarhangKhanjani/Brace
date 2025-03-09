@@ -18,6 +18,9 @@ import { startActivityMonitoring } from './utils/sessionManager';
 import Navbar from './components/Navbar';
 import BuyMeCoffee from './components/BuyMeCoffee';
 import FAQ from './components/FAQ';
+import SubscriptionPlans from './components/SubscriptionPlans';
+import ProtectedFeature from './components/ProtectedFeature';
+import PremiumFeatureComponent from './components/PremiumFeatureComponent';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -96,6 +99,15 @@ function App() {
             <Route path="/env-test" element={<EnvTest />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/subscription" element={<SubscriptionPlans />} />
+            <Route 
+              path="/premium-feature" 
+              element={
+                <ProtectedFeature requiredPlan="premium">
+                  <PremiumFeatureComponent />
+                </ProtectedFeature>
+              } 
+            />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
           <Footer />
