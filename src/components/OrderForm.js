@@ -326,8 +326,8 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
                     </div>
                     
                     <div className="form-group">
-                        <label className="toggle-container">
-                            <span className="toggle-label">Share with Community:</span>
+                        <div className="toggle-container">
+                            <span className="toggle-label">Share with Community</span>
                             <div className="toggle-switch">
                                 <input 
                                     type="checkbox" 
@@ -336,7 +336,7 @@ const OrderForm = ({ onOrderCreated, onClose }) => {
                                 />
                                 <span className="toggle-slider"></span>
                             </div>
-                        </label>
+                        </div>
                         <p className="toggle-help">When enabled, other users can see your trade</p>
                     </div>
                     

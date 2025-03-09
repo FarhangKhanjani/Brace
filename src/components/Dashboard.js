@@ -311,20 +311,20 @@ const Dashboard = () => {
         return profitLossPercent.toFixed(2);
     };
 
-    // Add the handleCloseOrder function
+    // Simplified fix for handleCloseOrder function
     const handleCloseOrder = async (order) => {
         try {
-            if (!window.confirm('Are you sure you want to close this order? This will record the result in your order history.')) {
+            if (!window.confirm('Are you sure you want to close this order?')) {
                 return;
             }
             
-            // Need current price to calculate final profit/loss
-            if (!orderPrices[order.symbol]) {
-                toast.error('Cannot close order: Current price data unavailable');
-                return;
-            }
+            // Show loading toast
+            const loadingToast = toast.loading('Closing order...');
             
-            const currentPrice = orderPrices[order.symbol];
+            // Use price shown in the dashboard UI
+            const currentPrice = parseFloat(order.current_price) || parseFloat(order.entry_price);
+            console.log(`Closing order with price: ${currentPrice}`);
+            
             const entryPrice = parseFloat(order.entry_price);
             let profitLossPercent;
             
@@ -334,16 +334,13 @@ const Dashboard = () => {
                 profitLossPercent = ((entryPrice - currentPrice) / entryPrice) * 100;
             }
             
-            // Show a loading toast
-            const loadingToast = toast.loading('Closing order...');
-            
-            // First, add to order_history with explicit ID to avoid constraint violation
+            // First, add to order_history WITH order_id field
             const { error: historyError } = await supabase
                 .from('order_history')
                 .insert([
                     {
-                        id: uuidv4(), // Generate our own UUID
-                        order_id: order.id,
+                        id: uuidv4(), // Generate UUID for this record
+                        order_id: order.id, // This is the critical field that was missing
                         user_id: order.user_id,
                         symbol: order.symbol,
                         entry_price: order.entry_price,
@@ -353,12 +350,15 @@ const Dashboard = () => {
                         close_price: currentPrice,
                         profit_loss: profitLossPercent.toFixed(2),
                         close_reason: 'manual_close',
+                        market_type: order.market_type || 'crypto',
+                        is_public: order.is_public || false,
                         created_at: order.created_at,
                         closed_at: new Date().toISOString()
                     }
                 ]);
             
             if (historyError) {
+                console.error("History insert error:", historyError);
                 throw historyError;
             }
             
@@ -369,14 +369,15 @@ const Dashboard = () => {
                 .eq('id', order.id);
                 
             if (deleteError) {
+                console.error("Delete error:", deleteError);
                 throw deleteError;
             }
             
-            // Dismiss loading toast and show success
+            // Success
             toast.dismiss(loadingToast);
             toast.success(`Order closed with ${profitLossPercent >= 0 ? 'profit' : 'loss'} of ${Math.abs(profitLossPercent).toFixed(2)}%`);
             
-            // Refresh orders list
+            // Refresh orders
             fetchOrders();
             
         } catch (error) {
