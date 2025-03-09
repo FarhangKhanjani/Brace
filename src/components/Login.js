@@ -91,6 +91,34 @@ const Login = () => {
         }
     };
 
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        
+        if (!email) {
+            toast.error('Please enter your email address');
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            
+            // Request password reset email from Supabase
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`,
+            });
+            
+            if (error) throw error;
+            
+            toast.success('Password reset link sent to your email');
+            
+        } catch (error) {
+            console.error('Error sending reset email:', error);
+            toast.error(error.message || 'Failed to send reset email');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="login-container">
             <div className="login-box">
@@ -234,6 +262,16 @@ const Login = () => {
                             <Link to="/signup" className="signup-link">
                                 Don't have an account? Sign Up
                             </Link>
+                        </div>
+
+                        <div className="forgot-password">
+                            <button 
+                                className="forgot-password-link" 
+                                onClick={handleForgotPassword}
+                                disabled={loading}
+                            >
+                                Forgot your password?
+                            </button>
                         </div>
                     </>
                 )}
